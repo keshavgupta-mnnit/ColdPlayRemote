@@ -1,0 +1,78 @@
+package com.keshav.coldplayremote.components
+
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.material3.Button
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
+import com.keshav.coldplayremote.RemoteUtils
+import com.keshav.coldplayremote.models.Remote
+import com.keshav.coldplayremote.models.RemoteButton
+import com.ramcosta.composedestinations.annotation.Destination
+
+@Destination
+@Composable
+fun IRRemotePage(
+) {
+    val applianceModel: Remote = Remote(
+        "Fan Remote",
+        listOf(
+            RemoteButton("On", 324123),
+            RemoteButton("Off", 324123),
+            RemoteButton("Increase", 324123)
+        )
+    )
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp)
+    ) {
+        Text(
+            text = applianceModel.name,
+            style = MaterialTheme.typography.headlineMedium,
+            modifier = Modifier.padding(bottom = 16.dp)
+        )
+
+        LazyVerticalGrid(
+            columns = GridCells.Adaptive(minSize = 100.dp),
+            contentPadding = PaddingValues(8.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            modifier = Modifier.fillMaxSize()
+        ) {
+            items(applianceModel.buttons) { button ->
+                Button(
+                    onClick = { RemoteUtils.transmitSignal(button.hexCode) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .aspectRatio(1f)
+                ) {
+                    Text(text = button.name, textAlign = TextAlign.Center)
+                }
+            }
+        }
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun IRRemotePagePreView(
+) {
+    IRRemotePage(
+
+    )
+
+}
