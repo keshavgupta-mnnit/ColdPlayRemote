@@ -1,15 +1,44 @@
+# Project-wide ignore rules
+.idea/
 *.iml
 .gradle
 /local.properties
-/.idea/caches
-/.idea/libraries
-/.idea/modules.xml
-/.idea/workspace.xml
-/.idea/navEditor.xml
-/.idea/assetWizardSettings.xml
 .DS_Store
 /build
 /captures
 .externalNativeBuild
 .cxx
-local.properties
+/buildSrc/build
+
+# Android Studio / IntelliJ IDEA specific
+*.iws
+*.out
+/out/
+
+# Kotlin
+/bin/
+
+# Keystore files
+*.jks
+*.keystore
+
+# Google Services
+# google-services.json
+
+# Crashlytics
+com_crashlytics_export_strings.xml
+crashlytics.properties
+crashlytics-build.properties
+fabric.properties
+
+# Log files
+*.log
+
+# Mobile Tools for Java (J2ME)
+.mtj.tmp/
+
+# Package Objects for JVM
+*.class
+
+# Runtime data
+.lock

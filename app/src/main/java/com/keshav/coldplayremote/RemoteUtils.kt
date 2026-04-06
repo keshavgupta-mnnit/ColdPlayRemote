@@ -2,6 +2,7 @@ package com.keshav.coldplayremote
 
 import android.content.Context
 import android.hardware.ConsumerIrManager
+import android.util.Log
 
 object RemoteUtils {
     private val irManager: ConsumerIrManager? by lazy {
@@ -34,9 +35,31 @@ object RemoteUtils {
     }
 
     fun transmitSignal(code: Int, frequency: Int = 38000) {
+        // The exact Carrier Frequency for the NEC Protocol
+        val frequency = 38000
+
+// The cleaned Volume Up pattern
+        val volumeUpPattern = intArrayOf(
+            9000, 4400,
+            600, 1650, 600, 1650, 550, 550, 550, 550,
+            550, 600, 550, 550, 550, 600, 550, 1700,
+            550, 550, 550, 1700, 550, 1650, 550, 550,
+            550, 1700, 550, 1650, 600, 550, 550, 1650,
+            600, 1650, 550, 1650, 600, 550, 550, 1650,
+            600, 550, 550, 550, 550, 600, 550, 550,
+            550, 600, 550, 550, 550, 1700, 550, 550,
+            550, 1700, 550, 1650, 600, 1600, 600, 1650,
+            600
+        )
+
+// Fire the signal!
+
         val pattern = necHexToPattern(code)
         if (irManager?.hasIrEmitter() == true) {
-            irManager?.transmit(frequency, pattern)
+            Log.d("Keshav","Signal transmitted with frequency = $frequency")
+            Log.d("Keshav","Signal transmitted with signal = $volumeUpPattern")
+            irManager?.transmit(frequency, volumeUpPattern)
+
         }
 
     }
