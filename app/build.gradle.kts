@@ -1,6 +1,7 @@
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
+    id("org.jetbrains.kotlin.plugin.compose")
     id("kotlin-kapt")
     id("kotlin-parcelize")
     id("com.google.dagger.hilt.android")
@@ -45,9 +46,6 @@ android {
         compose = true
         buildConfig = true
     }
-    composeOptions {
-        kotlinCompilerExtensionVersion = Versions.composeCompilerVersion
-    }
 
     applicationVariants.all {
         kotlin.sourceSets {
@@ -60,29 +58,20 @@ android {
 
 dependencies {
     implementation(Dependencies.coreKtx)
-    implementation(Dependencies.appCompat)
-    implementation(Dependencies.material)
-    implementation(Dependencies.constraintLayout)
+    implementation(Dependencies.appcompat)
 
     testImplementation(Dependencies.junit)
     androidTestImplementation(Dependencies.junitExt)
     androidTestImplementation(Dependencies.espressoCore)
 
     implementation(Dependencies.composeUi)
-    implementation(Dependencies.composeMaterial)
-    implementation(Dependencies.composeMaterialExtended)
     implementation(Dependencies.composeMaterial3)
 
     implementation(Dependencies.composePreview)
     implementation(Dependencies.lifecycleRuntime)
     implementation(Dependencies.activityCompose)
-    implementation(Dependencies.constraintLayout)
     androidTestImplementation(Dependencies.composeJunit)
     debugImplementation(Dependencies.composeUiTool)
-
-    implementation(Dependencies.coilCompose)
-    implementation(Dependencies.pagerCompose)
-    implementation(Dependencies.pagerIndicator)
 
     implementation(Dependencies.navigationCompose)
 
@@ -98,4 +87,6 @@ dependencies {
     implementation(Dependencies.hilt)
     kapt(Dependencies.hiltCompiler)
     implementation(Dependencies.hiltNavigationCompose)
+
+    implementation(Dependencies.coroutines)
 }
