@@ -13,6 +13,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.keshav.coldplayremote.components.destinations.IRRemotePageDestination
 import com.keshav.coldplayremote.navigation.MainNavGraph
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
@@ -33,7 +34,7 @@ fun HomePage(navigator: DestinationsNavigator, viewModel: HomeViewModel = hiltVi
             items(remotes) { remote ->
                 Button(
                     onClick = {
-                        navigator.navigate(IRRemotePageDestination)
+                        navigator.navigate(IRRemotePageDestination(remote))
                     },
                     modifier = Modifier.fillMaxWidth()
                 ) {
