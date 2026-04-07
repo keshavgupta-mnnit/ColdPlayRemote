@@ -2,6 +2,7 @@ package com.keshav.coldplayremote
 
 import android.content.Context
 import android.hardware.ConsumerIrManager
+import android.util.Log
 
 object RemoteUtils {
     private val irManager: ConsumerIrManager? by lazy {
@@ -10,33 +11,12 @@ object RemoteUtils {
         }
     }
 
-    fun necHexToPattern(code: Int): IntArray {
-        val pattern = mutableListOf<Int>()
-
-        // NEC lead pulse: 9000us on, 4500us off
-        pattern.add(9000)
-        pattern.add(4500)
-
-        // NEC data bits: MSB first
-        for (i in 31 downTo 0) {
-            pattern.add(560) // mark always 560
-            if ((code shr i) and 1 == 1) {
-                pattern.add(1690) // logical 1
-            } else {
-                pattern.add(560)  // logical 0
-            }
-        }
-
-        // NEC stop bit: final 560µs pulse (no off time needed)
-        pattern.add(560)
-
-        return pattern.toIntArray()
-    }
-
-    fun transmitSignal(code: Int, frequency: Int = 38000) {
-        val pattern = necHexToPattern(code)
+    fun transmitSignal(code: IntArray, frequency: Int = 40000) {
         if (irManager?.hasIrEmitter() == true) {
-            irManager?.transmit(frequency, pattern)
+            Log.d("Keshav","Signal transmitted with frequency = $frequency")
+            Log.d("Keshav","Signal transmitted with signal = $code")
+            irManager?.transmit(frequency, code)
+
         }
 
     }

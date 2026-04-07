@@ -13,15 +13,15 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.navigation.NavController
 import com.keshav.coldplayremote.components.destinations.IRRemotePageDestination
-import com.keshav.coldplayremote.models.Remote
+import com.keshav.coldplayremote.navigation.MainNavGraph
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 
-@Destination(start = true)
+@MainNavGraph(true)
+@Destination
 @Composable
-fun HomePage(viewModel: HomeViewModel = hiltViewModel(), navController: NavController) {
+fun HomePage(navigator: DestinationsNavigator, viewModel: HomeViewModel = hiltViewModel()) {
     val remotes = viewModel.getRemotes()
     Column(modifier = Modifier.padding(16.dp)) {
         Text(
@@ -34,7 +34,7 @@ fun HomePage(viewModel: HomeViewModel = hiltViewModel(), navController: NavContr
             items(remotes) { remote ->
                 Button(
                     onClick = {
-                        navController.navigate(IRRemotePageDestination())
+                        navigator.navigate(IRRemotePageDestination(remote))
                     },
                     modifier = Modifier.fillMaxWidth()
                 ) {

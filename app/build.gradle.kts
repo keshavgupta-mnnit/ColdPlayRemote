@@ -1,32 +1,32 @@
 plugins {
-    alias(libs.plugins.android.application)
-    alias(libs.plugins.jetbrains.kotlin.android)
-    alias(libs.plugins.ksp)
-    id("com.google.dagger.hilt.android")
-    kotlin("plugin.parcelize")
+    id("com.android.application")
+    id("org.jetbrains.kotlin.android")
     id("kotlin-kapt")
+    id("kotlin-parcelize")
+    id("com.google.dagger.hilt.android")
+    id("com.google.devtools.ksp")
+//    id("com.google.gms.google-services")
+//    id("com.google.firebase.crashlytics")
 }
 
 android {
-    namespace = "com.keshav.coldplayremote"
-    compileSdk = 35
+    namespace =  "com.keshav.coldplayremote"
+    compileSdk = Versions.compileSdk
 
     defaultConfig {
-        applicationId = "com.keshav.coldplayremote"
-        minSdk = 24
-        targetSdk = 34
-        versionCode = 1
-        versionName = "1.0"
+        applicationId =  "com.keshav.coldplayremote"
+
+        minSdk = Versions.minSdk
+        targetSdk = Versions.targetSdk
+        versionCode = Versions.versionCode
+        versionName = Versions.versionName
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        vectorDrawables {
-            useSupportLibrary = true
-        }
     }
 
     buildTypes {
-        release {
-            isMinifyEnabled = false
+        getByName("release") {
+            isMinifyEnabled = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -40,17 +40,14 @@ android {
     kotlinOptions {
         jvmTarget = "1.8"
     }
+
     buildFeatures {
         compose = true
     }
     composeOptions {
-        kotlinCompilerExtensionVersion = "1.5.1"
+        kotlinCompilerExtensionVersion = Versions.composeCompilerVersion
     }
-    packaging {
-        resources {
-            excludes += "/META-INF/{AL2.0,LGPL2.1}"
-        }
-    }
+
     applicationVariants.all {
         kotlin.sourceSets {
             getByName(name) {
@@ -61,29 +58,37 @@ android {
 }
 
 dependencies {
+    implementation(Dependencies.coreKtx)
+    implementation(Dependencies.appCompat)
+    implementation(Dependencies.material)
+    implementation(Dependencies.constraintLayout)
 
-    implementation(libs.androidx.core.ktx)
-    implementation(libs.androidx.lifecycle.runtime.ktx)
-    implementation(libs.androidx.activity.compose)
-    implementation(platform(libs.androidx.compose.bom))
-    implementation(libs.androidx.ui)
-    implementation(libs.androidx.ui.graphics)
-    implementation(libs.androidx.ui.tooling.preview)
-    implementation(libs.androidx.material3)
-    implementation(libs.androidx.appcompat)
-    implementation(libs.androidx.navigation.compose.android)
-    implementation(libs.destination.compose)
-    ksp(libs.destination.compose.ksp)
-    testImplementation(libs.junit)
-    androidTestImplementation(libs.androidx.junit)
-    androidTestImplementation(libs.androidx.espresso.core)
-    androidTestImplementation(platform(libs.androidx.compose.bom))
-    androidTestImplementation(libs.androidx.ui.test.junit4)
-    debugImplementation(libs.androidx.ui.tooling)
-    debugImplementation(libs.androidx.ui.test.manifest)
+    testImplementation(Dependencies.junit)
+    androidTestImplementation(Dependencies.junitExt)
+    androidTestImplementation(Dependencies.espressoCore)
 
-    implementation(libs.hilt)
-    kapt(libs.hilt.compiler)
-    implementation(libs.hilt.navigation.compose)
+    implementation(Dependencies.composeUi)
+    implementation(Dependencies.composeMaterial)
+    implementation(Dependencies.composeMaterialExtended)
+    implementation(Dependencies.composeMaterial3)
 
+    implementation(Dependencies.composePreview)
+    implementation(Dependencies.lifecycleRuntime)
+    implementation(Dependencies.activityCompose)
+    implementation(Dependencies.constraintLayout)
+    androidTestImplementation(Dependencies.composeJunit)
+    debugImplementation(Dependencies.composeUiTool)
+
+    implementation(Dependencies.coilCompose)
+    implementation(Dependencies.pagerCompose)
+    implementation(Dependencies.pagerIndicator)
+
+    implementation(Dependencies.navigationCompose)
+
+    implementation(Dependencies.destinationCompose)
+    ksp(Dependencies.destinationComposeKsp)
+
+    implementation(Dependencies.hilt)
+    kapt(Dependencies.hiltCompiler)
+    implementation(Dependencies.hiltNavigationCompose)
 }

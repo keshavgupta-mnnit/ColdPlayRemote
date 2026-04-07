@@ -16,32 +16,27 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.keshav.coldplayremote.RemoteUtils
 import com.keshav.coldplayremote.models.Remote
-import com.keshav.coldplayremote.models.RemoteButton
+import com.keshav.coldplayremote.navigation.MainNavGraph
 import com.ramcosta.composedestinations.annotation.Destination
+import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 
+@MainNavGraph
 @Destination
 @Composable
 fun IRRemotePage(
+    navigator: DestinationsNavigator,
+    remote: Remote
 ) {
-    val applianceModel: Remote = Remote(
-        "Fan Remote",
-        listOf(
-            RemoteButton("On", 324123),
-            RemoteButton("Off", 324123),
-            RemoteButton("Increase", 324123)
-        )
-    )
     Column(
         modifier = Modifier
             .fillMaxSize()
             .padding(16.dp)
     ) {
         Text(
-            text = applianceModel.name,
+            text = remote.name,
             style = MaterialTheme.typography.headlineMedium,
             modifier = Modifier.padding(bottom = 16.dp)
         )
@@ -53,9 +48,9 @@ fun IRRemotePage(
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             modifier = Modifier.fillMaxSize()
         ) {
-            items(applianceModel.buttons) { button ->
+            items(remote.buttons) { button ->
                 Button(
-                    onClick = { RemoteUtils.transmitSignal(button.hexCode) },
+                    onClick = { RemoteUtils.transmitSignal(button.code) },
                     modifier = Modifier
                         .fillMaxWidth()
                         .aspectRatio(1f)
@@ -65,14 +60,4 @@ fun IRRemotePage(
             }
         }
     }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun IRRemotePagePreView(
-) {
-    IRRemotePage(
-
-    )
-
 }

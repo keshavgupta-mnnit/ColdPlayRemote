@@ -1,16 +1,43 @@
 package com.keshav.coldplayremote.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.navigation.NavController
+import androidx.navigation.NavGraphBuilder
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.navigation
 import androidx.navigation.compose.rememberNavController
+import com.keshav.coldplayremote.components.HomePage
+import com.keshav.coldplayremote.components.IRRemotePage
 import com.keshav.coldplayremote.components.NavGraphs
-import com.ramcosta.composedestinations.DestinationsNavHost
+import com.keshav.coldplayremote.components.destinations.HomePageDestination
+import com.keshav.coldplayremote.components.destinations.IRRemotePageDestination
+import com.ramcosta.composedestinations.annotation.NavGraph
+import com.ramcosta.composedestinations.utils.composable
 
 @Composable
 fun AppNavigation() {
     val navController = rememberNavController()
-    DestinationsNavHost(
-        navGraph = NavGraphs.root,
-        navController = navController,
-        startRoute = NavGraphs.root.startRoute
-    )
+    NavHost(navController = navController, startDestination = NavGraphs.main.route) {
+        mainNavigation(navController)
+    }
 }
+
+fun NavGraphBuilder.mainNavigation(navController: NavController) {
+    navigation(startDestination = HomePageDestination.route, route = NavGraphs.main.route) {
+        composable(HomePageDestination) {
+            HomePage(destinationsNavigator(navController))
+        }
+        composable(IRRemotePageDestination) {
+            IRRemotePage(
+                destinationsNavigator(navController),
+                navArgs.remote
+            )
+        }
+
+    }
+}
+
+@NavGraph
+annotation class MainNavGraph(
+    val start: Boolean = false
+)
