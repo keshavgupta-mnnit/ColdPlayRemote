@@ -43,6 +43,7 @@ android {
 
     buildFeatures {
         compose = true
+        buildConfig = true
     }
     composeOptions {
         kotlinCompilerExtensionVersion = Versions.composeCompilerVersion
@@ -87,6 +88,8 @@ dependencies {
 
     implementation(Dependencies.destinationCompose)
     ksp(Dependencies.destinationComposeKsp)
+
+    implementation(Dependencies.timber)
 
     implementation(Dependencies.hilt)
     kapt(Dependencies.hiltCompiler)

@@ -43,6 +43,8 @@ object Dependencies {
     val coroutines by lazy {"org.jetbrains.kotlinx:kotlinx-coroutines-android:${Versions.coroutines}"}
     val coroutineCore by lazy {"org.jetbrains.kotlinx:kotlinx-coroutines-core:${Versions.coroutines}"}
 
+    val timber by lazy { "com.jakewharton.timber:timber:${Versions.timber}" }
+
 }
 
 object Modules {

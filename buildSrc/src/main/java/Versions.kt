@@ -33,4 +33,5 @@ object Versions {
     const val firebaseAnalytics = "21.2.0"
     const val firebaseCrashlytics = "18.3.2"
     const val fireStore = "24.7.1"
+    const val timber = "5.0.1"
 }
