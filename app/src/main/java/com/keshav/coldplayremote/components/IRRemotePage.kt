@@ -23,6 +23,9 @@ import com.keshav.coldplayremote.navigation.MainNavGraph
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 
+import androidx.compose.material3.ButtonDefaults
+import com.keshav.coldplayremote.RemoteSignalConstants
+
 @MainNavGraph
 @Destination
 @Composable
@@ -49,8 +52,28 @@ fun IRRemotePage(
             modifier = Modifier.fillMaxSize()
         ) {
             items(remote.buttons) { button ->
+                val backgroundColor = if (remote.name == "ColdPlay") {
+                    RemoteSignalConstants.ColdPlayBand.getColorByName(button.name)
+                } else {
+                    MaterialTheme.colorScheme.primary
+                }
+
+                val contentColor = if (remote.name == "ColdPlay") {
+                    if (button.name == "White" || button.name == "Cream" || button.name == "Light Yellow" || button.name == "Ice") {
+                        androidx.compose.ui.graphics.Color.Black
+                    } else {
+                        androidx.compose.ui.graphics.Color.White
+                    }
+                } else {
+                    MaterialTheme.colorScheme.onPrimary
+                }
+
                 Button(
                     onClick = { RemoteUtils.transmitSignal(button.code) },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = backgroundColor,
+                        contentColor = contentColor
+                    ),
                     modifier = Modifier
                         .fillMaxWidth()
                         .aspectRatio(1f)
