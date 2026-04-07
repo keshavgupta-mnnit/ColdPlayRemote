@@ -35,10 +35,8 @@ object Dependencies {
     val hiltNavigationCompose by lazy { "androidx.hilt:hilt-navigation-compose:${Versions.hiltNavigationCompose}" }
 
     val firebase by lazy { "com.google.firebase:firebase-bom:${Versions.firebase}" }
-    val firebaseAnalytics by lazy { "com.google.firebase:firebase-analytics-ktx:${Versions.firebaseAnalytics}" }
-    val firebaseCrashlytics by lazy { "com.google.firebase:firebase-crashlytics-ktx:${Versions.firebaseCrashlytics}" }
-    val firebaseAuth by lazy { "com.google.firebase:firebase-auth-ktx" }
-    val fireStore by lazy {"com.google.firebase:firebase-firestore-ktx:${Versions.fireStore}"}
+    val firebaseAnalytics by lazy { "com.google.firebase:firebase-analytics-ktx" }
+    val firebaseCrashlytics by lazy { "com.google.firebase:firebase-crashlytics-ktx" }
 
     val coroutines by lazy {"org.jetbrains.kotlinx:kotlinx-coroutines-android:${Versions.coroutines}"}
     val coroutineCore by lazy {"org.jetbrains.kotlinx:kotlinx-coroutines-core:${Versions.coroutines}"}

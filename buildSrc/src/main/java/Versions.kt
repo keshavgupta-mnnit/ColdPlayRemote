@@ -29,9 +29,6 @@ object Versions {
     const val hiltCompiler = "2.51.1"
     const val hiltNavigationCompose = "1.1.0"
 
-    const val firebase = "32.1.1"
-    const val firebaseAnalytics = "21.2.0"
-    const val firebaseCrashlytics = "18.3.2"
-    const val fireStore = "24.7.1"
+    const val firebase = "34.11.0"
     const val timber = "5.0.1"
 }

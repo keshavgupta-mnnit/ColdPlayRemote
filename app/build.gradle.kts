@@ -5,8 +5,8 @@ plugins {
     id("kotlin-parcelize")
     id("com.google.dagger.hilt.android")
     id("com.google.devtools.ksp")
-//    id("com.google.gms.google-services")
-//    id("com.google.firebase.crashlytics")
+    id("com.google.gms.google-services")
+    id("com.google.firebase.crashlytics")
 }
 
 android {
@@ -90,6 +90,10 @@ dependencies {
     ksp(Dependencies.destinationComposeKsp)
 
     implementation(Dependencies.timber)
+
+    implementation(platform(Dependencies.firebase))
+    implementation(Dependencies.firebaseAnalytics)
+    implementation(Dependencies.firebaseCrashlytics)
 
     implementation(Dependencies.hilt)
     kapt(Dependencies.hiltCompiler)

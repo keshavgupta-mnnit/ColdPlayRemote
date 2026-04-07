@@ -17,6 +17,7 @@ import com.kglabs.wristdj.components.destinations.IRRemotePageDestination
 import com.kglabs.wristdj.components.destinations.InternalMusicPlayerScreenDestination
 import com.kglabs.wristdj.components.destinations.MusicSyncScreenDestination
 import com.kglabs.wristdj.navigation.MainNavGraph
+import com.kglabs.wristdj.viewmodel.HomeViewModel
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 
