@@ -1,4 +1,4 @@
-package com.keshav.coldplayremote.components
+package com.kglabs.wristdj.components
 
 import android.Manifest
 import android.content.pm.PackageManager
@@ -16,9 +16,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
-import com.keshav.coldplayremote.RemoteSignalConstants
-import com.keshav.coldplayremote.RemoteUtils
-import com.keshav.coldplayremote.navigation.MainNavGraph
+import com.kglabs.wristdj.RemoteSignalConstants
+import com.kglabs.wristdj.RemoteUtils
+import com.kglabs.wristdj.navigation.MainNavGraph
 import com.ramcosta.composedestinations.annotation.Destination
 import kotlin.math.hypot
 

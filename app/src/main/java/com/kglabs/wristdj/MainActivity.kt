@@ -1,9 +1,10 @@
-package com.keshav.coldplayremote
+package com.kglabs.wristdj
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import com.keshav.coldplayremote.navigation.AppNavigation
+import com.kglabs.wristdj.navigation.AppNavigation
+import com.kglabs.wristdj.ui.theme.WristDJTheme
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
@@ -11,7 +12,9 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            AppNavigation()
+            WristDJTheme {
+                AppNavigation()
+            }
         }
     }
 }

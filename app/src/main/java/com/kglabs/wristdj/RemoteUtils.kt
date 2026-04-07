@@ -1,8 +1,8 @@
-package com.keshav.coldplayremote
+package com.kglabs.wristdj
 
 import android.content.Context
 import android.hardware.ConsumerIrManager
-import android.util.Log
+import timber.log.Timber
 
 object RemoteUtils {
     private val irManager: ConsumerIrManager? by lazy {
@@ -19,10 +19,9 @@ object RemoteUtils {
 
     fun transmitSignal(code: IntArray, frequency: Int = 38000) {
         if (irManager?.hasIrEmitter() == true) {
-            Log.d("Keshav","Signal transmitted with frequency = $frequency")
-            Log.d("Keshav","Signal transmitted with signal = $code")
+            Timber.d("Signal transmitted with frequency = $frequency")
+            Timber.d("Signal transmitted with signal = $code")
             irManager?.transmit(frequency, code)
-
         }
 
     }

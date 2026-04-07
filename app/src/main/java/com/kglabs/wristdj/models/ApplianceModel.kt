@@ -1,4 +1,4 @@
-package com.keshav.coldplayremote.models
+package com.kglabs.wristdj.models
 
 import android.os.Parcelable
 import kotlinx.parcelize.Parcelize

@@ -1,20 +1,21 @@
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
+    id("org.jetbrains.kotlin.plugin.compose")
     id("kotlin-kapt")
     id("kotlin-parcelize")
     id("com.google.dagger.hilt.android")
     id("com.google.devtools.ksp")
-//    id("com.google.gms.google-services")
-//    id("com.google.firebase.crashlytics")
+    id("com.google.gms.google-services")
+    id("com.google.firebase.crashlytics")
 }
 
 android {
-    namespace =  "com.keshav.coldplayremote"
+    namespace = "com.kglabs.wristdj"
     compileSdk = Versions.compileSdk
 
     defaultConfig {
-        applicationId =  "com.keshav.coldplayremote"
+        applicationId = "com.kglabs.wristdj"
 
         minSdk = Versions.minSdk
         targetSdk = Versions.targetSdk
@@ -43,9 +44,7 @@ android {
 
     buildFeatures {
         compose = true
-    }
-    composeOptions {
-        kotlinCompilerExtensionVersion = Versions.composeCompilerVersion
+        buildConfig = true
     }
 
     applicationVariants.all {
@@ -59,36 +58,35 @@ android {
 
 dependencies {
     implementation(Dependencies.coreKtx)
-    implementation(Dependencies.appCompat)
-    implementation(Dependencies.material)
-    implementation(Dependencies.constraintLayout)
+    implementation(Dependencies.appcompat)
 
     testImplementation(Dependencies.junit)
     androidTestImplementation(Dependencies.junitExt)
     androidTestImplementation(Dependencies.espressoCore)
 
     implementation(Dependencies.composeUi)
-    implementation(Dependencies.composeMaterial)
-    implementation(Dependencies.composeMaterialExtended)
     implementation(Dependencies.composeMaterial3)
 
     implementation(Dependencies.composePreview)
     implementation(Dependencies.lifecycleRuntime)
     implementation(Dependencies.activityCompose)
-    implementation(Dependencies.constraintLayout)
     androidTestImplementation(Dependencies.composeJunit)
     debugImplementation(Dependencies.composeUiTool)
-
-    implementation(Dependencies.coilCompose)
-    implementation(Dependencies.pagerCompose)
-    implementation(Dependencies.pagerIndicator)
 
     implementation(Dependencies.navigationCompose)
 
     implementation(Dependencies.destinationCompose)
     ksp(Dependencies.destinationComposeKsp)
 
+    implementation(Dependencies.timber)
+
+    implementation(platform(Dependencies.firebase))
+    implementation(Dependencies.firebaseAnalytics)
+    implementation(Dependencies.firebaseCrashlytics)
+
     implementation(Dependencies.hilt)
     kapt(Dependencies.hiltCompiler)
     implementation(Dependencies.hiltNavigationCompose)
+
+    implementation(Dependencies.coroutines)
 }

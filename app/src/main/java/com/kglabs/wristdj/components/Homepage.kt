@@ -1,4 +1,4 @@
-package com.keshav.coldplayremote.components
+package com.kglabs.wristdj.components
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -13,10 +13,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.keshav.coldplayremote.components.destinations.IRRemotePageDestination
-import com.keshav.coldplayremote.components.destinations.InternalMusicPlayerScreenDestination
-import com.keshav.coldplayremote.components.destinations.MusicSyncScreenDestination
-import com.keshav.coldplayremote.navigation.MainNavGraph
+import com.kglabs.wristdj.components.destinations.IRRemotePageDestination
+import com.kglabs.wristdj.components.destinations.InternalMusicPlayerScreenDestination
+import com.kglabs.wristdj.components.destinations.MusicSyncScreenDestination
+import com.kglabs.wristdj.navigation.MainNavGraph
+import com.kglabs.wristdj.viewmodel.HomeViewModel
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 

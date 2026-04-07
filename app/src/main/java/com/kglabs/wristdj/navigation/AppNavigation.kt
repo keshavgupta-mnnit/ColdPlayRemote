@@ -1,4 +1,4 @@
-package com.keshav.coldplayremote.navigation
+package com.kglabs.wristdj.navigation
 
 import androidx.compose.runtime.Composable
 import androidx.navigation.NavController
@@ -6,15 +6,15 @@ import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.navigation
 import androidx.navigation.compose.rememberNavController
-import com.keshav.coldplayremote.components.HomePage
-import com.keshav.coldplayremote.components.IRRemotePage
-import com.keshav.coldplayremote.components.InternalMusicPlayerScreen
-import com.keshav.coldplayremote.components.MusicSyncScreen
-import com.keshav.coldplayremote.components.NavGraphs
-import com.keshav.coldplayremote.components.destinations.HomePageDestination
-import com.keshav.coldplayremote.components.destinations.IRRemotePageDestination
-import com.keshav.coldplayremote.components.destinations.InternalMusicPlayerScreenDestination
-import com.keshav.coldplayremote.components.destinations.MusicSyncScreenDestination
+import com.kglabs.wristdj.components.HomePage
+import com.kglabs.wristdj.components.IRRemotePage
+import com.kglabs.wristdj.components.InternalMusicPlayerScreen
+import com.kglabs.wristdj.components.MusicSyncScreen
+import com.kglabs.wristdj.components.NavGraphs
+import com.kglabs.wristdj.components.destinations.HomePageDestination
+import com.kglabs.wristdj.components.destinations.IRRemotePageDestination
+import com.kglabs.wristdj.components.destinations.InternalMusicPlayerScreenDestination
+import com.kglabs.wristdj.components.destinations.MusicSyncScreenDestination
 import com.ramcosta.composedestinations.annotation.NavGraph
 import com.ramcosta.composedestinations.utils.composable
 
