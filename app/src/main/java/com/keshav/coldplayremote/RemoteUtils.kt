@@ -11,7 +11,13 @@ object RemoteUtils {
         }
     }
 
-    fun transmitSignal(code: IntArray, frequency: Int = 40000) {
+    fun transmitSignal(codeString: String, frequency: Int = 38000) {
+        if (codeString.isEmpty()) return
+        val code = codeString.split(",").map { it.trim().toInt() }.toIntArray()
+        transmitSignal(code, frequency)
+    }
+
+    fun transmitSignal(code: IntArray, frequency: Int = 38000) {
         if (irManager?.hasIrEmitter() == true) {
             Log.d("Keshav","Signal transmitted with frequency = $frequency")
             Log.d("Keshav","Signal transmitted with signal = $code")

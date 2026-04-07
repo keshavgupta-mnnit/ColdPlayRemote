@@ -8,9 +8,13 @@ import androidx.navigation.compose.navigation
 import androidx.navigation.compose.rememberNavController
 import com.keshav.coldplayremote.components.HomePage
 import com.keshav.coldplayremote.components.IRRemotePage
+import com.keshav.coldplayremote.components.InternalMusicPlayerScreen
+import com.keshav.coldplayremote.components.MusicSyncScreen
 import com.keshav.coldplayremote.components.NavGraphs
 import com.keshav.coldplayremote.components.destinations.HomePageDestination
 import com.keshav.coldplayremote.components.destinations.IRRemotePageDestination
+import com.keshav.coldplayremote.components.destinations.InternalMusicPlayerScreenDestination
+import com.keshav.coldplayremote.components.destinations.MusicSyncScreenDestination
 import com.ramcosta.composedestinations.annotation.NavGraph
 import com.ramcosta.composedestinations.utils.composable
 
@@ -32,6 +36,12 @@ fun NavGraphBuilder.mainNavigation(navController: NavController) {
                 destinationsNavigator(navController),
                 navArgs.remote
             )
+        }
+        composable(MusicSyncScreenDestination) {
+            MusicSyncScreen()
+        }
+        composable(InternalMusicPlayerScreenDestination) {
+            InternalMusicPlayerScreen()
         }
 
     }

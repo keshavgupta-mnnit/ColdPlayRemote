@@ -12,23 +12,5 @@ data class Remote(
 @Parcelize
 data class RemoteButton(
     val name: String = "",
-    val code: IntArray = intArrayOf(),
-) : Parcelable {
-    override fun equals(other: Any?): Boolean {
-        if (this === other) return true
-        if (javaClass != other?.javaClass) return false
-
-        other as RemoteButton
-
-        if (name != other.name) return false
-        if (!code.contentEquals(other.code)) return false
-
-        return true
-    }
-
-    override fun hashCode(): Int {
-        var result = name.hashCode()
-        result = 31 * result + code.contentHashCode()
-        return result
-    }
-}
+    val code: String = "",
+) : Parcelable
