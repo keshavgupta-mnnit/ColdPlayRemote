@@ -1,4 +1,4 @@
-package com.keshav.coldplayremote
+package com.kglabs.wristdj
 
 import android.content.Context
 import android.hardware.ConsumerIrManager

@@ -1,9 +1,9 @@
-package com.keshav.coldplayremote.components
+package com.kglabs.wristdj.components
 
 import androidx.lifecycle.ViewModel
-import com.keshav.coldplayremote.RemoteSignalConstants
-import com.keshav.coldplayremote.models.Remote
-import com.keshav.coldplayremote.models.RemoteButton
+import com.kglabs.wristdj.RemoteSignalConstants
+import com.kglabs.wristdj.models.Remote
+import com.kglabs.wristdj.models.RemoteButton
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 

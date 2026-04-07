@@ -13,6 +13,6 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "ColdPlayRemote"
+rootProject.name = "WristDJ"
 include(":app")
  

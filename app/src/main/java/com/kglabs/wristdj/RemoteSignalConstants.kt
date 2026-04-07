@@ -1,4 +1,4 @@
-package com.keshav.coldplayremote
+package com.kglabs.wristdj
 
 object RemoteSignalConstants {
 

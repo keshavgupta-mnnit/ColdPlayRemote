@@ -1,4 +1,4 @@
-package com.keshav.coldplayremote.components
+package com.kglabs.wristdj.components
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -17,14 +17,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.keshav.coldplayremote.RemoteUtils
-import com.keshav.coldplayremote.models.Remote
-import com.keshav.coldplayremote.navigation.MainNavGraph
+import com.kglabs.wristdj.RemoteUtils
+import com.kglabs.wristdj.models.Remote
+import com.kglabs.wristdj.navigation.MainNavGraph
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 
 import androidx.compose.material3.ButtonDefaults
-import com.keshav.coldplayremote.RemoteSignalConstants
+import com.kglabs.wristdj.RemoteSignalConstants
 
 @MainNavGraph
 @Destination

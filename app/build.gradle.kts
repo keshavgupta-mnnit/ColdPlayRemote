@@ -10,11 +10,11 @@ plugins {
 }
 
 android {
-    namespace =  "com.keshav.coldplayremote"
+    namespace = "com.kglabs.wristdj"
     compileSdk = Versions.compileSdk
 
     defaultConfig {
-        applicationId =  "com.keshav.coldplayremote"
+        applicationId = "com.kglabs.wristdj"
 
         minSdk = Versions.minSdk
         targetSdk = Versions.targetSdk
