@@ -3,6 +3,7 @@
     xmlns:tools="http://schemas.android.com/tools">
     <uses-permission android:name="android.permission.TRANSMIT_IR" />
     <uses-feature android:name="android.hardware.consumerir" android:required="true" />
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
 
     <application
         android:allowBackup="true"
