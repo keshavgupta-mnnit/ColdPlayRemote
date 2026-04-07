@@ -18,7 +18,7 @@ import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import com.kglabs.wristdj.utils.ColdPlayBand
 import com.kglabs.wristdj.utils.MicAnalyzer
-import com.kglabs.wristdj.utils.RemoteUtils
+import com.kglabs.wristdj.utils.IRUtils
 import com.kglabs.wristdj.utils.ToneType
 
 @Composable
@@ -99,7 +99,7 @@ fun LiveMicDeck() {
                             }
                             // Get the IR signal for the chosen color
                             val signal = colorToSignalMap[selectedArray]
-                            signal?.let { RemoteUtils.transmitSignal(it)}
+                            signal?.let { IRUtils.transmitSignal(it)}
                         }
                     } else {
                         micAnalyzer.stopListening()

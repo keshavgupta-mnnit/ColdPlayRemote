@@ -13,7 +13,7 @@ import kotlin.math.sqrt
 class MicAnalyzer(private val context: Context) {
     private var audioRecord: AudioRecord? = null
     private var isRecording = false
-    private var scope = CoroutineScope(Dispatchers.IO + Job())
+    private var scope: CoroutineScope? = null
 
     private var lastBeatTime = 0L
 
@@ -21,6 +21,7 @@ class MicAnalyzer(private val context: Context) {
         getSensitivity: () -> Float,
         onBeatDetected: (ToneType) -> Unit
     ) {
+        if (isRecording) return
         if (ActivityCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
             return
         }
@@ -42,43 +43,35 @@ class MicAnalyzer(private val context: Context) {
 
         audioRecord?.startRecording()
         isRecording = true
+        scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
-        // Launch a background thread to process the audio buffer continuously
-        scope.launch {
+        scope?.launch {
             val buffer = ShortArray(bufferSize)
 
-            while (isRecording) {
+            while (isActive && isRecording) {
                 val readResult = audioRecord?.read(buffer, 0, bufferSize) ?: 0
                 if (readResult > 0) {
-                    // 1. Calculate RMS (Root Mean Square) to find the volume energy
                     var sum = 0.0
                     for (i in 0 until readResult) {
                         sum += buffer[i] * buffer[i]
                     }
                     val rms = sqrt(sum / readResult)
 
-                    // 2. Fetch the live sensitivity from the UI slider (0.0 to 1.0)
                     val sensitivity = getSensitivity()
-
-                    // Math: If sensitivity is 1.0 (High), threshold is low (easy to trigger).
-                    // If sensitivity is 0.0 (Low), threshold is high (needs loud sounds).
-                    val baseThreshold = 3000.0 // Baseline volume
+                    val baseThreshold = 3000.0 
                     val currentThreshold = baseThreshold * (1.1f - sensitivity)
 
                     val currentTime = System.currentTimeMillis()
 
-                    // 3. Beat Detection & Color Mapping
                     if (rms > currentThreshold && (currentTime - lastBeatTime) > 250) {
                         lastBeatTime = currentTime
 
-                        // Determine the intensity of the sound to pick the color type
                         val tone = when {
-                            rms > currentThreshold * 2.0 -> ToneType.BASS // Extremely Loud
-                            rms > currentThreshold * 1.4 -> ToneType.MID  // Very Loud
-                            else -> ToneType.HIGH                         // Just passed threshold
+                            rms > currentThreshold * 2.0 -> ToneType.BASS 
+                            rms > currentThreshold * 1.4 -> ToneType.MID  
+                            else -> ToneType.HIGH                         
                         }
 
-                        // Switch back to the Main Thread to update the UI and fire IR
                         withContext(Dispatchers.Main) {
                             onBeatDetected(tone)
                         }
@@ -90,8 +83,15 @@ class MicAnalyzer(private val context: Context) {
 
     fun stopListening() {
         isRecording = false
-        audioRecord?.stop()
-        audioRecord?.release()
-        audioRecord = null
+        scope?.cancel()
+        scope = null
+        try {
+            audioRecord?.stop()
+            audioRecord?.release()
+        } catch (e: Exception) {
+            // Log error or ignore
+        } finally {
+            audioRecord = null
+        }
     }
 }

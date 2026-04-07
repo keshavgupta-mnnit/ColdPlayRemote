@@ -6,10 +6,8 @@ import timber.log.Timber
 
 class MainApplication : Application() {
     companion object {
-        private var myInstance: MainApplication? = null
-        fun getInstance(): MainApplication? {
-            return myInstance
-        }
+        private lateinit var myInstance: MainApplication
+        fun getInstance(): MainApplication = myInstance
     }
 
     override fun onCreate() {

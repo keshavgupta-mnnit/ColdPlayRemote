@@ -43,7 +43,7 @@ import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import com.kglabs.wristdj.utils.AudioPlayer
 import com.kglabs.wristdj.utils.ColdPlayBand
-import com.kglabs.wristdj.utils.RemoteUtils
+import com.kglabs.wristdj.utils.IRUtils
 import com.kglabs.wristdj.utils.ToneType
 
 @Composable
@@ -115,7 +115,7 @@ fun PlayerDeck() {
 
                 // Blast the chosen color to the wristband (Frequency is 38000 by default)
                 if (signal != null) {
-                    RemoteUtils.transmitSignal(signal)
+                    IRUtils.transmitSignal(signal)
                 }
             }
         }

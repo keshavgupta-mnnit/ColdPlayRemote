@@ -26,9 +26,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.kglabs.wristdj.compose.components.HeroVisualizer
+import com.kglabs.wristdj.utils.IRUtils
 
 enum class StudioTab { MIC, PLAYER, COLORS }
 
@@ -37,32 +39,35 @@ fun WristDJMainScreen() {
     var currentTab by remember { mutableStateOf(StudioTab.MIC) }
     val darkBackground = Color(0xFF000000)
     val neonAccent = Color(0xFF00E5FF)
+    val hasIr = remember { IRUtils.hasIrEmitter() }
 
     Scaffold(
         containerColor = darkBackground,
         bottomBar = {
-            NavigationBar(
-                containerColor = Color.Transparent,
-                tonalElevation = 0.dp
-            ) {
-                NavigationBarItem(
-                    selected = currentTab == StudioTab.MIC,
-                    onClick = { currentTab = StudioTab.MIC },
-                    icon = { Icon(Icons.Default.Mic, contentDescription = null) },
-                    colors = NavigationBarItemDefaults.colors(selectedIconColor = neonAccent, unselectedIconColor = Color.Gray, indicatorColor = Color.Transparent)
-                )
-                NavigationBarItem(
-                    selected = currentTab == StudioTab.PLAYER,
-                    onClick = { currentTab = StudioTab.PLAYER },
-                    icon = { Icon(Icons.Default.LibraryMusic, contentDescription = null) },
-                    colors = NavigationBarItemDefaults.colors(selectedIconColor = neonAccent, unselectedIconColor = Color.Gray, indicatorColor = Color.Transparent)
-                )
-                NavigationBarItem(
-                    selected = currentTab == StudioTab.COLORS,
-                    onClick = { currentTab = StudioTab.COLORS },
-                    icon = { Icon(Icons.Default.Palette, contentDescription = null) },
-                    colors = NavigationBarItemDefaults.colors(selectedIconColor = neonAccent, unselectedIconColor = Color.Gray, indicatorColor = Color.Transparent)
-                )
+            if (hasIr) {
+                NavigationBar(
+                    containerColor = Color.Transparent,
+                    tonalElevation = 0.dp
+                ) {
+                    NavigationBarItem(
+                        selected = currentTab == StudioTab.MIC,
+                        onClick = { currentTab = StudioTab.MIC },
+                        icon = { Icon(Icons.Default.Mic, contentDescription = null) },
+                        colors = NavigationBarItemDefaults.colors(selectedIconColor = neonAccent, unselectedIconColor = Color.Gray, indicatorColor = Color.Transparent)
+                    )
+                    NavigationBarItem(
+                        selected = currentTab == StudioTab.PLAYER,
+                        onClick = { currentTab = StudioTab.PLAYER },
+                        icon = { Icon(Icons.Default.LibraryMusic, contentDescription = null) },
+                        colors = NavigationBarItemDefaults.colors(selectedIconColor = neonAccent, unselectedIconColor = Color.Gray, indicatorColor = Color.Transparent)
+                    )
+                    NavigationBarItem(
+                        selected = currentTab == StudioTab.COLORS,
+                        onClick = { currentTab = StudioTab.COLORS },
+                        icon = { Icon(Icons.Default.Palette, contentDescription = null) },
+                        colors = NavigationBarItemDefaults.colors(selectedIconColor = neonAccent, unselectedIconColor = Color.Gray, indicatorColor = Color.Transparent)
+                    )
+                }
             }
         }
     ) { innerPadding ->
@@ -76,19 +81,30 @@ fun WristDJMainScreen() {
             Text("Wrist DJ", color = Color.White, fontSize = 28.sp, fontWeight = FontWeight.Black)
             Spacer(modifier = Modifier.height(24.dp))
 
-            HeroVisualizer(accentColor = neonAccent)
-            Spacer(modifier = Modifier.height(32.dp))
+            if (!hasIr) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text(
+                        text = "IR Hardware not detected.\nThis device cannot control LED bands.",
+                        color = Color.Red,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.padding(16.dp)
+                    )
+                }
+            } else {
+                HeroVisualizer(accentColor = neonAccent)
+                Spacer(modifier = Modifier.height(32.dp))
 
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f)
-                    .padding(horizontal = 24.dp, vertical = 16.dp)
-            ) {
-                when (currentTab) {
-                    StudioTab.MIC -> LiveMicDeck()
-                    StudioTab.PLAYER -> PlayerDeck()
-                    StudioTab.COLORS -> ManualColorsDeck()
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f)
+                        .padding(horizontal = 24.dp, vertical = 16.dp)
+                ) {
+                    when (currentTab) {
+                        StudioTab.MIC -> LiveMicDeck()
+                        StudioTab.PLAYER -> PlayerDeck()
+                        StudioTab.COLORS -> ManualColorsDeck()
+                    }
                 }
             }
         }
