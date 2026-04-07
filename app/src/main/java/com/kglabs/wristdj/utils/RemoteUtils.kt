@@ -1,12 +1,13 @@
-package com.kglabs.wristdj
+package com.kglabs.wristdj.utils
 
 import android.content.Context
 import android.hardware.ConsumerIrManager
+import com.kglabs.wristdj.MainApplication
 import timber.log.Timber
 
 object RemoteUtils {
     private val irManager: ConsumerIrManager? by lazy {
-        MainApplication.getInstance()?.let {
+        MainApplication.Companion.getInstance()?.let {
             it.getSystemService(Context.CONSUMER_IR_SERVICE) as ConsumerIrManager
         }
     }

@@ -67,6 +67,8 @@ dependencies {
     implementation(Dependencies.composeUi)
     implementation(Dependencies.composeMaterial3)
 
+    implementation(Dependencies.composeMaterialIcons)
+
     implementation(Dependencies.composePreview)
     implementation(Dependencies.lifecycleRuntime)
     implementation(Dependencies.activityCompose)

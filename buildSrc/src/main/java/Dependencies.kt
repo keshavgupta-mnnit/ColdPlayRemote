@@ -15,6 +15,8 @@ object Dependencies {
     val composeJunit by lazy { "androidx.compose.ui:ui-test-junit4:${Versions.composeVersion}" }
     val composeUiTool by lazy { "androidx.compose.ui:ui-tooling:${Versions.composeVersion}" }
 
+    val composeMaterialIcons by lazy { "androidx.compose.material:material-icons-extended:${Versions.composeMaterialIcons}" }
+
     val navigationCompose by lazy { "androidx.navigation:navigation-compose:${Versions.navigationCompose}" }
 
     val destinationCompose by lazy { "io.github.raamcosta.compose-destinations:core:${Versions.destinationCompose}" }

@@ -23,6 +23,7 @@ object Versions {
     const val hilt = "2.51.1"
     const val hiltCompiler = "2.51.1"
     const val hiltNavigationCompose = "1.1.0"
+    const val composeMaterialIcons = "1.7.5"
 
     const val firebase = "34.11.0"
     const val timber = "5.0.1"
