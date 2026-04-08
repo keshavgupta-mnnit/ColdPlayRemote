@@ -1,13 +1,13 @@
 {
   "project_info": {
-    "project_number": "761824533377",
-    "project_id": "wristdj",
-    "storage_bucket": "wristdj.firebasestorage.app"
+    "project_number": "857485273937",
+    "project_id": "wristdj-kglabs",
+    "storage_bucket": "wristdj-kglabs.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:761824533377:android:1e0a9f7dbea7ea9ac4a680",
+        "mobilesdk_app_id": "1:857485273937:android:d2093e08d035f028180170",
         "android_client_info": {
           "package_name": "com.kglabs.wristdj"
         }
@@ -15,7 +15,7 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyBnIpzNJCFhG6sJj97NID5xtbWYJX5lWNs"
+          "current_key": "AIzaSyANeDPOMXWz7jm9xJpQIfjnqqZFH0xAMCo"
         }
       ],
       "services": {
