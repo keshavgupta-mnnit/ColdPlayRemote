@@ -42,7 +42,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import com.kglabs.wristdj.utils.AudioPlayer
-import com.kglabs.wristdj.utils.ColdPlayBand
+import com.kglabs.wristdj.utils.BandColorConstants
 import com.kglabs.wristdj.utils.IRUtils
 import com.kglabs.wristdj.utils.ToneType
 
@@ -56,20 +56,20 @@ fun PlayerDeck() {
 
     // --- FREQUENCY-BASED COLOR PALETTES ---
     val bassColors = remember {
-        ColdPlayBand.bassColors
+        BandColorConstants.bassColors
     }
 
     val midColors = remember {
-        ColdPlayBand.midColors
+        BandColorConstants.midColors
     }
 
     val highColors = remember {
-        ColdPlayBand.highColors
+        BandColorConstants.highColors
     }
 
     // Map color names to their IR signals once for easy lookup
     val colorToSignalMap = remember {
-        ColdPlayBand.buttons.toMap()
+        BandColorConstants.buttons.toMap()
     }
 
     // --- PERMISSION HANDLING ---

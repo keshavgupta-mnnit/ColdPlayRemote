@@ -19,14 +19,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.kglabs.wristdj.utils.ColdPlayBand
+import com.kglabs.wristdj.utils.BandColorConstants
 import com.kglabs.wristdj.utils.IRUtils
 
 @Composable
 fun ManualColorsDeck() {
     // Note: Add your exact colors to this list
-    val colorGrid = ColdPlayBand.buttons
-    val haptic = LocalHapticFeedback.current
+    val colorGrid = BandColorConstants.buttons
 
     Column {
         Text("MANUAL OVERRIDE", color = Color.White, fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 16.dp))
@@ -41,7 +40,7 @@ fun ManualColorsDeck() {
                     modifier = Modifier
                         .aspectRatio(1f)
                         .clip(CircleShape)
-                        .background(ColdPlayBand.getColorByName(colorName))
+                        .background(BandColorConstants.getColorByName(colorName))
                         .clickable {
                             IRUtils.vibrate(50)
                             IRUtils.transmitSignal(irCode)

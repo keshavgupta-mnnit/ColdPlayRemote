@@ -2,7 +2,7 @@ package com.kglabs.wristdj.utils
 
 import androidx.compose.ui.graphics.Color
 
-object ColdPlayBand {
+object BandColorConstants {
     val bassColors =
         listOf(
             "Red", "Magenta", "Pink", "Light Red", "Little Red", "Orange", "Orange 2", "Red Orange"

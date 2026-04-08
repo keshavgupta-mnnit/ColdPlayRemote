@@ -16,7 +16,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
-import com.kglabs.wristdj.utils.ColdPlayBand
+import com.kglabs.wristdj.utils.BandColorConstants
 import com.kglabs.wristdj.utils.MicAnalyzer
 import com.kglabs.wristdj.utils.IRUtils
 import com.kglabs.wristdj.utils.ToneType
@@ -33,19 +33,19 @@ fun LiveMicDeck() {
     // --- FREQUENCY-BASED COLOR PALETTES ---
     // (Replace these with your actual IntArrays from your 33 colors)
     val bassColors = remember {
-        ColdPlayBand.bassColors
+        BandColorConstants.bassColors
     }
 
     val midColors = remember {
-        ColdPlayBand.midColors
+        BandColorConstants.midColors
     }
 
     val highColors = remember {
-        ColdPlayBand.highColors
+        BandColorConstants.highColors
     }
 
     val colorToSignalMap = remember {
-        ColdPlayBand.buttons.toMap()
+        BandColorConstants.buttons.toMap()
     }
 
     // --- PERMISSION HANDLING ---
