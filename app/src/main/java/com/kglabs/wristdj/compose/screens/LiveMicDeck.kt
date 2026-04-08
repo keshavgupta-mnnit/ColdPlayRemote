@@ -4,10 +4,24 @@ import android.Manifest
 import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderDefaults
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -16,9 +30,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
+import com.kglabs.wristdj.compose.components.CustomGlowingToggle
+import com.kglabs.wristdj.compose.components.RainbowWaveformVisualizer
 import com.kglabs.wristdj.utils.BandColorConstants
-import com.kglabs.wristdj.utils.MicAnalyzer
 import com.kglabs.wristdj.utils.IRUtils
+import com.kglabs.wristdj.utils.MicAnalyzer
 import com.kglabs.wristdj.utils.ToneType
 
 @Composable
@@ -28,25 +44,11 @@ fun LiveMicDeck() {
 
     // --- STATE MANAGEMENT ---
     var isSyncing by remember { mutableStateOf(false) }
-    var sensitivity by remember { mutableStateOf(0.7f) } // Default slightly high
+    var sensitivity by remember { mutableStateOf(0.7f) }
+    var currentThreshold by remember { mutableStateOf(2500) }
 
-    // --- FREQUENCY-BASED COLOR PALETTES ---
-    // (Replace these with your actual IntArrays from your 33 colors)
-    val bassColors = remember {
-        BandColorConstants.bassColors
-    }
-
-    val midColors = remember {
-        BandColorConstants.midColors
-    }
-
-    val highColors = remember {
-        BandColorConstants.highColors
-    }
-
-    val colorToSignalMap = remember {
-        BandColorConstants.buttons.toMap()
-    }
+    // Look up map for IR strings (Remembered so it doesn't rebuild constantly)
+    val colorToSignalMap = remember { BandColorConstants.buttons.toMap() }
 
     // --- PERMISSION HANDLING ---
     var hasPermission by remember {
@@ -55,15 +57,16 @@ fun LiveMicDeck() {
 
     val permissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
         hasPermission = isGranted
-        if (!isGranted) isSyncing = false
+        if (!isGranted) {
+            isSyncing = false
+            micAnalyzer.stopListening()
+        }
     }
 
-    // Request permission automatically if needed
     LaunchedEffect(Unit) {
         if (!hasPermission) permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
     }
 
-    // Safely shut off the microphone if the user navigates away from the Mic tab
     DisposableEffect(Unit) {
         onDispose {
             micAnalyzer.stopListening()
@@ -71,79 +74,109 @@ fun LiveMicDeck() {
         }
     }
 
-    // --- THE UI ---
+    // --- MAIN UI LAYOUT ---
     Column(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 24.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
+        Text(
+            text = "Wrist DJ - Live Mic",
+            color = Color.White,
+            fontSize = 20.sp,
+            fontWeight = FontWeight.SemiBold,
+            modifier = Modifier.padding(top = 16.dp, bottom = 32.dp)
+        )
+
+        RainbowWaveformVisualizer(isSyncing = isSyncing)
+
+        Spacer(modifier = Modifier.height(24.dp))
+
         if (!hasPermission) {
-            Text("Microphone permission required for Live Sync.", color = Color.Red, modifier = Modifier.padding(bottom = 16.dp))
-            Button(onClick = { permissionLauncher.launch(Manifest.permission.RECORD_AUDIO) }) {
-                Text("Grant Permission")
-            }
+            Text("Mic Permission Required", color = Color.Red, fontSize = 16.sp)
         } else {
-            // Massive Chunky Toggle Button
-            Button(
-                onClick = {
-                    isSyncing = !isSyncing
-                    if (isSyncing) {
-                        // Pass a lambda for sensitivity so the analyzer gets live updates when slider moves
-                        micAnalyzer.startListening(
-                            getSensitivity = { sensitivity }
-                        ) { toneType ->
-                            // Pick color based on how loud the mic input was
-                            val selectedArray = when (toneType) {
-                                ToneType.BASS -> bassColors.random()
-                                ToneType.MID -> midColors.random()
-                                ToneType.HIGH -> highColors.random()
-                            }
-                            // Get the IR signal for the chosen color
-                            val signal = colorToSignalMap[selectedArray]
-                            signal?.let { IRUtils.transmitSignal(it)}
-                        }
-                    } else {
-                        micAnalyzer.stopListening()
-                    }
-                },
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = if (isSyncing) Color(0xFF00C853) else Color.DarkGray
-                ),
-                shape = RoundedCornerShape(24.dp),
-                modifier = Modifier
-                    .fillMaxWidth(0.9f)
-                    .height(120.dp)
-            ) {
-                Text(
-                    text = if (isSyncing) "SYNCING LIVE..." else "START SYNC",
-                    fontSize = 24.sp,
-                    fontWeight = FontWeight.Black,
-                    color = Color.White
-                )
-            }
-
-            Spacer(modifier = Modifier.height(64.dp))
-
-            // Sensitivity Control
-            Text("MIC SENSITIVITY", color = Color.LightGray, fontSize = 14.sp, fontWeight = FontWeight.Bold)
-
-            Slider(
-                value = sensitivity,
-                onValueChange = { sensitivity = it },
-                colors = SliderDefaults.colors(
-                    thumbColor = Color.White,
-                    activeTrackColor = if (isSyncing) Color(0xFF00C853) else Color(0xFF00E5FF),
-                    inactiveTrackColor = Color.DarkGray
-                ),
-                modifier = Modifier.fillMaxWidth(0.85f).padding(top = 8.dp)
+            Text(
+                text = if (isSyncing) "Syncing to Music..." else "Waiting to Sync...",
+                color = Color.White,
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Medium
             )
-
-            Row(
-                modifier = Modifier.fillMaxWidth(0.85f),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Text("Low", color = Color.Gray, fontSize = 12.sp)
-                Text("High", color = Color.Gray, fontSize = 12.sp)
-            }
+            Text(
+                text = "(Threshold: $currentThreshold)",
+                color = Color.LightGray,
+                fontSize = 14.sp,
+                modifier = Modifier.padding(top = 4.dp, bottom = 24.dp)
+            )
         }
+
+        CustomGlowingToggle(
+            isOn = isSyncing,
+            onToggle = {
+                if (!hasPermission) {
+                    permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                    return@CustomGlowingToggle
+                }
+
+                isSyncing = !isSyncing
+
+                if (isSyncing) {
+                    micAnalyzer.startListening(
+                        getSensitivity = { sensitivity }
+                    ) { toneType ->
+
+                        // 1. Pick a color name based on the sound frequency
+                        val selectedColorName = when (toneType) {
+                            ToneType.BASS -> BandColorConstants.bassColors.random()
+                            ToneType.MID -> BandColorConstants.midColors.random()
+                            ToneType.HIGH -> BandColorConstants.highColors.random()
+                        }
+
+                        // 2. Fetch the IR String from your mapped list
+                        val signalString = colorToSignalMap[selectedColorName]
+
+                        // 3. Blast the code using your Utils
+                        if (signalString != null) {
+                            IRUtils.transmitSignal(signalString)
+                        }
+                    }
+                } else {
+                    micAnalyzer.stopListening()
+                }
+            }
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+        Text("Start Microphone Sync", color = Color.White, fontSize = 14.sp)
+        Spacer(modifier = Modifier.weight(1f))
+
+        // --- SLIDER ---
+        Text("Sensitivity", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Medium)
+        Slider(
+            value = sensitivity,
+            onValueChange = {
+                sensitivity = it
+                currentThreshold = (3000 * (1.1f - it)).toInt()
+            },
+            colors = SliderDefaults.colors(
+                thumbColor = Color.White,
+                activeTrackColor = Color.White,
+                inactiveTrackColor = Color.DarkGray
+            ),
+            modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
+        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text("Low", color = Color.Gray, fontSize = 12.sp)
+            Text("High", color = Color.Gray, fontSize = 12.sp)
+        }
+        Spacer(modifier = Modifier.height(32.dp))
     }
 }
+
+// ------------------------------------------------------------------
+// (Keep your RainbowWaveformVisualizer, AnimatedWaveformBar,
+// and CustomGlowingToggle composables right here at the bottom!)
+// ------------------------------------------------------------------
