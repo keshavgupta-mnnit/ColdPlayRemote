@@ -3,6 +3,7 @@ package com.kglabs.wristdj.compose.screens
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
@@ -59,6 +60,18 @@ fun ManualColorsDeck() {
 
     val scrollState = rememberScrollState()
 
+    // --- ILLUMINATION ANIMATION ---
+    val infiniteTransition = rememberInfiniteTransition(label = "illumination")
+    val illuminationAlpha by infiniteTransition.animateFloat(
+        initialValue = 0.1f,
+        targetValue = 0.4f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1500, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "alpha"
+    )
+
     // --- CONTINUOUS FIRING LOOP ---
     // This coroutine runs while isTransmittingContinuously is true
     LaunchedEffect(isTransmittingContinuously, activeSignal) {
@@ -77,12 +90,30 @@ fun ManualColorsDeck() {
         }
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(horizontal = 24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
+    Box(modifier = Modifier.fillMaxSize()) {
+        // Full-screen illumination effect
+        if (isTransmittingContinuously) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        brush = Brush.verticalGradient(
+                            colors = listOf(
+                                activeUiColor.copy(alpha = illuminationAlpha),
+                                Color.Transparent,
+                                activeUiColor.copy(alpha = illuminationAlpha * 0.5f)
+                            )
+                        )
+                    )
+            )
+        }
+
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
         Text(
             text = "Wrist DJ - Colors",
             color = Color.White,
@@ -147,6 +178,7 @@ fun ManualColorsDeck() {
             Spacer(modifier = Modifier.height(32.dp))
         }
     }
+}
 }
 
 @Composable
