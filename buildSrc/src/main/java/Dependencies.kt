@@ -15,21 +15,14 @@ object Dependencies {
     val composeJunit by lazy { "androidx.compose.ui:ui-test-junit4:${Versions.composeVersion}" }
     val composeUiTool by lazy { "androidx.compose.ui:ui-tooling:${Versions.composeVersion}" }
 
-    val navigationCompose by lazy { "androidx.navigation:navigation-compose:${Versions.navigationCompose}" }
-
-    val destinationCompose by lazy { "io.github.raamcosta.compose-destinations:core:${Versions.destinationCompose}" }
-    val destinationComposeKsp by lazy { "io.github.raamcosta.compose-destinations:ksp:${Versions.destinationCompose}" }
-
-    val hilt by lazy { "com.google.dagger:hilt-android:${Versions.hilt}" }
-    val hiltCompiler by lazy { "com.google.dagger:hilt-compiler:${Versions.hiltCompiler}" }
-    val hiltNavigationCompose by lazy { "androidx.hilt:hilt-navigation-compose:${Versions.hiltNavigationCompose}" }
-
-    val firebase by lazy { "com.google.firebase:firebase-bom:${Versions.firebase}" }
-    val firebaseAnalytics by lazy { "com.google.firebase:firebase-analytics" }
-    val firebaseCrashlytics by lazy { "com.google.firebase:firebase-crashlytics" }
+    val composeMaterialIcons by lazy { "androidx.compose.material:material-icons-extended:${Versions.composeMaterialIcons}" }
 
     val coroutines by lazy {"org.jetbrains.kotlinx:kotlinx-coroutines-android:${Versions.coroutines}"}
 
     val timber by lazy { "com.jakewharton.timber:timber:${Versions.timber}" }
+
+    val firebase by lazy { "com.google.firebase:firebase-bom:${Versions.firebase}" }
+    val firebaseAnalytics by lazy { "com.google.firebase:firebase-analytics" }
+    val firebaseCrashlytics by lazy { "com.google.firebase:firebase-crashlytics" }
 
 }
