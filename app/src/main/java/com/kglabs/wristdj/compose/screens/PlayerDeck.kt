@@ -98,18 +98,27 @@ fun PlayerDeck() {
     }
 
     // --- MAIN UI ---
-    Box(modifier = Modifier.fillMaxSize()) {
-        // Full-screen illumination effect
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(
+                Brush.radialGradient(
+                    colors = listOf(Color(0xFF1A1A24), Color(0xFF050505)),
+                    radius = 1500f
+                )
+            )
+    ) {
+        // Top-only illumination effect
         if (isPlaying) {
             Box(
                 modifier = Modifier
-                    .fillMaxSize()
+                    .fillMaxWidth()
+                    .height(250.dp)
                     .background(
                         brush = Brush.verticalGradient(
                             colors = listOf(
-                                Color(0xFFFFA500).copy(alpha = illuminationAlpha),
-                                Color.Transparent,
-                                Color(0xFFFFA500).copy(alpha = illuminationAlpha * 0.5f)
+                                (currentTrack?.glowColor ?: Color(0xFFFFA500)).copy(alpha = illuminationAlpha),
+                                Color.Transparent
                             )
                         )
                     )
@@ -120,7 +129,7 @@ fun PlayerDeck() {
             modifier = Modifier.fillMaxSize().padding(horizontal = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text("Wrist DJ - Player", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(top = 16.dp, bottom = 24.dp))
+            Text("Wrist DJ - Player", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 16.dp, bottom = 24.dp))
             
             // Hardware Accelerated Rotating Vinyl
             VinylRecordVisualizer(
@@ -312,14 +321,14 @@ fun VinylRecordVisualizer(albumArt: Bitmap?, progress: Float, isPlaying: Boolean
     Box(
         contentAlignment = Alignment.Center,
         modifier = Modifier
-            .size(220.dp)
-            .shadow(elevation = if (isPlaying) 24.dp else 0.dp, shape = CircleShape, spotColor = activeGlow)
+            .size(240.dp)
+            .shadow(elevation = if (isPlaying) 30.dp else 0.dp, shape = CircleShape, spotColor = activeGlow)
             .clip(CircleShape) // Explicit clip forces the bounds to be perfectly round
             .background(Color(0xFF050505))
     ) {
         androidx.compose.foundation.Canvas(modifier = Modifier.fillMaxSize()) {
-            drawArc(color = Color(0xFF222222), startAngle = 0f, sweepAngle = 360f, useCenter = false, style = Stroke(width = 10.dp.toPx()))
-            drawArc(color = activeGlow, startAngle = -90f, sweepAngle = 360f * progress, useCenter = false, style = Stroke(width = 10.dp.toPx(), cap = StrokeCap.Round))
+            drawArc(color = Color(0xFF222222), startAngle = 0f, sweepAngle = 360f, useCenter = false, style = Stroke(width = 12.dp.toPx()))
+            drawArc(color = activeGlow, startAngle = -90f, sweepAngle = 360f * progress, useCenter = false, style = Stroke(width = 12.dp.toPx(), cap = StrokeCap.Round))
         }
 
         Box(

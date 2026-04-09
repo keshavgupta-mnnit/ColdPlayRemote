@@ -36,10 +36,17 @@ import kotlin.math.abs
 import kotlin.math.cos
 import kotlin.math.sin
 
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.graphics.graphicsLayer
 import com.kglabs.wristdj.utils.BandColorConstants
 import com.kglabs.wristdj.utils.IRUtils
 import com.kglabs.wristdj.utils.MicAnalyzer
 import com.kglabs.wristdj.utils.ToneType
+
+private val rainbowColors = listOf(
+    Color(0xFFFF007F), Color(0xFF7F00FF), Color(0xFF00E5FF),
+    Color(0xFF00FF00), Color(0xFFFFFF00), Color(0xFFFF0000), Color(0xFFFF007F)
+)
 
 @Composable
 fun LiveMicDeck() {
@@ -51,6 +58,18 @@ fun LiveMicDeck() {
     var currentThreshold by remember { mutableStateOf(2500) }
 
     val colorToSignalMap = remember { BandColorConstants.buttons.toMap() }
+
+    // --- ILLUMINATION ANIMATION ---
+    val infiniteTransition = rememberInfiniteTransition(label = "illumination")
+    val illuminationAlpha by infiniteTransition.animateFloat(
+        initialValue = 0.1f,
+        targetValue = 0.4f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1500, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "alpha"
+    )
 
     var hasPermission by remember {
         mutableStateOf(ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED)
@@ -85,6 +104,33 @@ fun LiveMicDeck() {
                 )
             )
     ) {
+        // Top-only rainbow illumination effect
+        if (isListening) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(280.dp)
+                    .graphicsLayer(alpha = 0.99f) // Required for DstIn blendMode
+                    .drawWithContent {
+                        drawContent()
+                        // Use a vertical gradient to fade out the top glow
+                        drawRect(
+                            brush = Brush.verticalGradient(
+                                colors = listOf(Color.White, Color.Transparent),
+                                startY = 0f,
+                                endY = size.height
+                            ),
+                            blendMode = androidx.compose.ui.graphics.BlendMode.DstIn
+                        )
+                    }
+                    .background(
+                        brush = Brush.sweepGradient(
+                            colors = rainbowColors.map { it.copy(alpha = illuminationAlpha * 0.6f) }
+                        )
+                    )
+            )
+        }
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -92,15 +138,15 @@ fun LiveMicDeck() {
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
-                text = "PixMob DJ Studio - Live Mic",
+                text = "Wrist DJ - Live Mic",
                 color = Color.White,
-                fontSize = 18.sp,
-                fontWeight = FontWeight.SemiBold,
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Bold,
                 modifier = Modifier.padding(top = 16.dp, bottom = 32.dp)
             )
 
             // Transparent Waveform + Stable Dotted Rings
-            FullWidthLiveVisualizer(isListening = isListening)
+            FullWidthLiveVisualizer(isListening = isListening, illuminationAlpha = illuminationAlpha)
 
             Spacer(modifier = Modifier.height(32.dp))
 
@@ -179,7 +225,7 @@ fun LiveMicDeck() {
 // --- REBUILT COMPONENTS ---
 
 @Composable
-fun FullWidthLiveVisualizer(isListening: Boolean) {
+fun FullWidthLiveVisualizer(isListening: Boolean, illuminationAlpha: Float) {
     Box(
         contentAlignment = Alignment.Center,
         modifier = Modifier
@@ -187,7 +233,16 @@ fun FullWidthLiveVisualizer(isListening: Boolean) {
             .height(260.dp)
     ) {
         BackgroundWaveform(isListening = isListening)
-        StableRingsVisualizer(isListening = isListening)
+        
+        // Wrap StableRingsVisualizer
+        // We removed the shadow/clip modifiers here to eliminate the "octagon" bug
+        // when working with transparent backgrounds. We now draw the glow in Canvas.
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = Modifier.size(240.dp)
+        ) {
+            StableRingsVisualizer(isListening = isListening, illuminationAlpha = illuminationAlpha)
+        }
     }
 }
 
@@ -201,10 +256,6 @@ fun BackgroundWaveform(isListening: Boolean) {
         label = "phase"
     )
 
-    val rainbowColors = listOf(
-        Color(0xFFFF007F), Color(0xFF7F00FF), Color(0xFF00E5FF),
-        Color(0xFF00FF00), Color(0xFFFFFF00), Color(0xFFFF0000), Color(0xFFFF007F)
-    )
     val waveBrush = Brush.horizontalGradient(colors = rainbowColors)
 
     Canvas(modifier = Modifier.fillMaxSize()) {
@@ -243,13 +294,8 @@ fun BackgroundWaveform(isListening: Boolean) {
 }
 
 @Composable
-fun StableRingsVisualizer(isListening: Boolean) {
-    val rainbowColors = listOf(
-        Color(0xFFFF007F), Color(0xFF7F00FF), Color(0xFF00E5FF),
-        Color(0xFF00FF00), Color(0xFFFFFF00), Color(0xFFFF0000), Color(0xFFFF007F)
-    )
-
-    Canvas(modifier = Modifier.size(240.dp)) {
+fun StableRingsVisualizer(isListening: Boolean, illuminationAlpha: Float) {
+    Canvas(modifier = Modifier.fillMaxSize()) {
         val center = Offset(size.width / 2, size.height / 2)
         val maxRadius = size.width / 2
 
@@ -268,10 +314,39 @@ fun StableRingsVisualizer(isListening: Boolean) {
         // FIXED: Stable static dashes, completely removing the "marching" animation phase
         val stableDottedEffect = PathEffect.dashPathEffect(floatArrayOf(4f, 8f), 0f)
 
-        // Dark mask behind the rings so they pop out against the waveform
+        // 0. Manual Glows (Replacing Shadow to avoid Octagon and keep transparency)
+        if (isListening) {
+            // White outer aura - Hollow center
+            drawCircle(
+                brush = Brush.radialGradient(
+                    0.0f to Color.Transparent,
+                    0.7f to Color.Transparent,
+                    0.85f to Color.White.copy(alpha = illuminationAlpha * 0.3f),
+                    1.0f to Color.Transparent,
+                    center = center,
+                    radius = maxRadius + 40.dp.toPx()
+                ),
+                radius = maxRadius + 40.dp.toPx()
+            )
+
+            // Rainbow sweep aura (limited to the ring area)
+            drawCircle(
+                brush = Brush.sweepGradient(rainbowColors, center),
+                radius = maxRadius,
+                alpha = illuminationAlpha * 0.3f,
+                style = Stroke(width = 32.dp.toPx())
+            )
+        }
+
+        // 1. Dark mask behind the rings - Clear in the center to show the waveform
+        // We use a RadialGradient with multiple color stops to create a "hollow" dark ring.
         drawCircle(
             brush = Brush.radialGradient(
-                colors = listOf(Color(0xFF000000).copy(alpha = 0.9f), Color.Transparent),
+                0.0f to Color.Transparent,
+                0.55f to Color.Transparent, 
+                0.7f to Color.Black.copy(alpha = 0.8f),
+                0.95f to Color.Black.copy(alpha = 0.8f),
+                1.0f to Color.Transparent,
                 center = center,
                 radius = maxRadius
             )
@@ -315,11 +390,11 @@ fun RedGreenToggleSwitch(isOn: Boolean, onToggle: () -> Unit) {
         modifier = Modifier
             .width(130.dp)
             .height(56.dp)
+            .shadow(if (isOn) 12.dp else 0.dp, RoundedCornerShape(50), spotColor = borderColor)
             .clip(RoundedCornerShape(50))
             .background(Color(0xFF111111)) // Hollow center
             .border(2.dp, borderColor, RoundedCornerShape(50))
             .clickable { onToggle() }
-            .shadow(if (isOn) 12.dp else 0.dp, RoundedCornerShape(50), spotColor = Color(0xFF00FF00))
             .padding(6.dp)
     ) {
         Row(
@@ -329,9 +404,9 @@ fun RedGreenToggleSwitch(isOn: Boolean, onToggle: () -> Unit) {
         ) {
             if (isOn) {
                 Text("ON", color = textColor, fontSize = 18.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(start = 12.dp))
-                Box(modifier = Modifier.size(40.dp).clip(CircleShape).background(Color.White).shadow(8.dp, CircleShape, spotColor = thumbGlow))
+                Box(modifier = Modifier.size(40.dp).shadow(8.dp, CircleShape, spotColor = thumbGlow).clip(CircleShape).background(Color.White))
             } else {
-                Box(modifier = Modifier.size(40.dp).clip(CircleShape).background(Color.White).shadow(8.dp, CircleShape, spotColor = thumbGlow))
+                Box(modifier = Modifier.size(40.dp).shadow(8.dp, CircleShape, spotColor = thumbGlow).clip(CircleShape).background(Color.White))
                 Text("OFF", color = textColor, fontSize = 18.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(end = 12.dp))
             }
         }

@@ -2,7 +2,6 @@ package com.kglabs.wristdj.utils
 
 import android.content.Context
 import android.content.Intent
-import android.content.SharedPreferences
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.media.MediaMetadataRetriever
@@ -11,11 +10,17 @@ import android.media.audiofx.Visualizer
 import android.net.Uri
 import android.provider.DocumentsContract
 import android.provider.OpenableColumns
-import timber.log.Timber
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
-import kotlinx.coroutines.*
+import androidx.compose.ui.graphics.Color
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.json.JSONArray
+import timber.log.Timber
 import kotlin.math.hypot
 
 data class AudioTrack(
@@ -23,7 +28,8 @@ data class AudioTrack(
     val title: String,
     val artist: String,
     val duration: Int,
-    val albumArt: Bitmap?
+    val albumArt: Bitmap?,
+    val glowColor: Color = Color(0xFFFFA500)
 )
 
 object GlobalAudioPlayer {

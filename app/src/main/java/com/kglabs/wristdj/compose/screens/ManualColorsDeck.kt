@@ -36,11 +36,16 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.kglabs.wristdj.utils.BandColorConstants
@@ -90,18 +95,40 @@ fun ManualColorsDeck() {
         }
     }
 
-    Box(modifier = Modifier.fillMaxSize()) {
-        // Full-screen illumination effect
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(
+                Brush.radialGradient(
+                    colors = listOf(Color(0xFF1A1A24), Color(0xFF050505)),
+                    radius = 1500f
+                )
+            )
+    ) {
+        // Top-only illumination effect
         if (isTransmittingContinuously) {
             Box(
                 modifier = Modifier
-                    .fillMaxSize()
+                    .fillMaxWidth()
+                    .height(280.dp)
+                    .graphicsLayer(alpha = 0.99f) // Required for DstIn blendMode
+                    .drawWithContent {
+                        drawContent()
+                        // Use a vertical gradient to fade out the top glow
+                        drawRect(
+                            brush = Brush.verticalGradient(
+                                colors = listOf(Color.White, Color.Transparent),
+                                startY = 0f,
+                                endY = size.height
+                            ),
+                            blendMode = BlendMode.DstIn
+                        )
+                    }
                     .background(
                         brush = Brush.verticalGradient(
                             colors = listOf(
                                 activeUiColor.copy(alpha = illuminationAlpha),
-                                Color.Transparent,
-                                activeUiColor.copy(alpha = illuminationAlpha * 0.5f)
+                                Color.Transparent
                             )
                         )
                     )
@@ -114,23 +141,23 @@ fun ManualColorsDeck() {
                 .padding(horizontal = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-        Text(
-            text = "Wrist DJ - Colors",
-            color = Color.White,
-            fontSize = 20.sp,
-            fontWeight = FontWeight.SemiBold,
-            modifier = Modifier.padding(top = 16.dp, bottom = 32.dp)
-        )
+            Text(
+                text = "Wrist DJ - Colors",
+                color = Color.White,
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(top = 16.dp, bottom = 32.dp)
+            )
 
-        // 1. The Hero Visualizer (Now interactive!)
-        ColorHeroVisualizer(
-            targetColor = activeUiColor,
-            isTransmitting = isTransmittingContinuously,
-            onClick = {
-                // Toggle the continuous firing mode when tapped
-                isTransmittingContinuously = !isTransmittingContinuously
-            }
-        )
+            // 1. The Hero Visualizer (Now interactive!)
+            ColorHeroVisualizer(
+                targetColor = activeUiColor,
+                isTransmitting = isTransmittingContinuously,
+                onClick = {
+                    // Toggle the continuous firing mode when tapped
+                    isTransmittingContinuously = !isTransmittingContinuously
+                }
+            )
 
         Spacer(modifier = Modifier.height(32.dp))
 
@@ -209,12 +236,23 @@ fun ColorHeroVisualizer(
     Box(
         contentAlignment = Alignment.Center,
         modifier = Modifier
-            .size(200.dp)
+            .size(240.dp)
             .scale(pulseScale)
-            // 1. Cast the shadow on the solid parent container (Fixes the octagon bug entirely!)
-            .shadow(elevation = 24.dp, shape = CircleShape, spotColor = animatedColor)
+            // 1. Draw the glow manually (Fixes the octagon bug entirely!)
+            .drawBehind {
+                if (isTransmitting) {
+                    drawCircle(
+                        brush = Brush.radialGradient(
+                            colors = listOf(animatedColor.copy(alpha = 0.6f), Color.Transparent),
+                            center = center,
+                            radius = size.width / 1.5f
+                        ),
+                        radius = size.width / 1.5f
+                    )
+                }
+            }
             .clip(CircleShape) // Ensures the touch ripple is a perfect circle
-            .background(Color(0xFF050505)) // A solid, near-black base to cast the perfect shadow
+            .background(Color(0xFF050505)) // A solid, near-black base
             .clickable { onClick() }
     ) {
         // 2. The Inner Gradient Glow (The effect you wanted back)
