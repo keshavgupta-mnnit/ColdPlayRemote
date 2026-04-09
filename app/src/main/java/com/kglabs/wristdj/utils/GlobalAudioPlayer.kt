@@ -12,7 +12,7 @@ import android.provider.DocumentsContract
 import android.provider.OpenableColumns
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.ui.graphics.Color
+import com.kglabs.wristdj.models.AudioTrack
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -22,15 +22,6 @@ import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import timber.log.Timber
 import kotlin.math.hypot
-
-data class AudioTrack(
-    val uri: Uri,
-    val title: String,
-    val artist: String,
-    val duration: Int,
-    val albumArt: Bitmap?,
-    val glowColor: Color = Color(0xFFFFA500)
-)
 
 object GlobalAudioPlayer {
     var mediaPlayer: MediaPlayer? = null
@@ -93,14 +84,12 @@ object GlobalAudioPlayer {
 
                 val mmr = MediaMetadataRetriever()
                 var title = ""
-                var artist = "Unknown Artist"
                 var duration = 0
                 var art: Bitmap? = null
 
                 try {
                     mmr.setDataSource(context, uri)
                     title = mmr.extractMetadata(MediaMetadataRetriever.METADATA_KEY_TITLE) ?: ""
-                    artist = mmr.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ARTIST) ?: "Unknown Artist"
                     duration = mmr.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)?.toIntOrNull() ?: 0
                     val artBytes = mmr.embeddedPicture
                     art = artBytes?.let { BitmapFactory.decodeByteArray(it, 0, it.size) }
@@ -137,19 +126,17 @@ object GlobalAudioPlayer {
                     title = title.substringBeforeLast(".")
                 }
 
-                // Robust Duplicate Check: Check if this song (title, artist, duration) is already in playlist
+                // Robust Duplicate Check: Check if this song (title, duration) is already in playlist
                 val isAlreadyInPlaylist = playlist.any { 
                     it.title.equals(title, ignoreCase = true) && 
-                    it.artist.equals(artist, ignoreCase = true) && 
                     Math.abs(it.duration - duration) < 1000 // allow 1s difference
                 }
                 val isAlreadyInNewBatch = newTracks.any { 
-                    it.title.equals(title, ignoreCase = true) && 
-                    it.artist.equals(artist, ignoreCase = true)
+                    it.title.equals(title, ignoreCase = true)
                 }
 
                 if (!isAlreadyInPlaylist && !isAlreadyInNewBatch) {
-                    newTracks.add(AudioTrack(uri, title.ifBlank { "Unknown Track" }, artist, duration, art))
+                    newTracks.add(AudioTrack(uri, title.ifBlank { "Unknown Track" }, duration, art))
                 }
             }
 

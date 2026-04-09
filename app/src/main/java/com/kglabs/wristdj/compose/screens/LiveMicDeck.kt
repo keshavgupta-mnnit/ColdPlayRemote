@@ -6,7 +6,6 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.*
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -20,33 +19,22 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.PathEffect
-import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
-import kotlin.math.abs
-import kotlin.math.cos
-import kotlin.math.sin
-
-import androidx.compose.ui.draw.drawWithContent
-import androidx.compose.ui.graphics.graphicsLayer
+import com.kglabs.wristdj.compose.components.LiveMicVisualizer
+import com.kglabs.wristdj.compose.components.StudioBackground
 import com.kglabs.wristdj.utils.BandColorConstants
 import com.kglabs.wristdj.utils.IRUtils
 import com.kglabs.wristdj.utils.MicAnalyzer
 import com.kglabs.wristdj.utils.ToneType
-
-private val rainbowColors = listOf(
-    Color(0xFFFF007F), Color(0xFF7F00FF), Color(0xFF00E5FF),
-    Color(0xFF00FF00), Color(0xFFFFFF00), Color(0xFFFF0000), Color(0xFFFF007F)
-)
 
 @Composable
 fun LiveMicDeck() {
@@ -59,7 +47,6 @@ fun LiveMicDeck() {
 
     val colorToSignalMap = remember { BandColorConstants.buttons.toMap() }
 
-    // --- ILLUMINATION ANIMATION ---
     val infiniteTransition = rememberInfiniteTransition(label = "illumination")
     val illuminationAlpha by infiniteTransition.animateFloat(
         initialValue = 0.1f,
@@ -94,43 +81,10 @@ fun LiveMicDeck() {
         }
     }
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(
-                Brush.radialGradient(
-                    colors = listOf(Color(0xFF1A1A24), Color(0xFF050505)),
-                    radius = 1500f
-                )
-            )
+    StudioBackground(
+        showTopGlow = isListening,
+        isRainbowGlow = true
     ) {
-        // Top-only rainbow illumination effect
-        if (isListening) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(280.dp)
-                    .graphicsLayer(alpha = 0.99f) // Required for DstIn blendMode
-                    .drawWithContent {
-                        drawContent()
-                        // Use a vertical gradient to fade out the top glow
-                        drawRect(
-                            brush = Brush.verticalGradient(
-                                colors = listOf(Color.White, Color.Transparent),
-                                startY = 0f,
-                                endY = size.height
-                            ),
-                            blendMode = androidx.compose.ui.graphics.BlendMode.DstIn
-                        )
-                    }
-                    .background(
-                        brush = Brush.sweepGradient(
-                            colors = rainbowColors.map { it.copy(alpha = illuminationAlpha * 0.6f) }
-                        )
-                    )
-            )
-        }
-
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -145,8 +99,7 @@ fun LiveMicDeck() {
                 modifier = Modifier.padding(top = 16.dp, bottom = 32.dp)
             )
 
-            // Transparent Waveform + Stable Dotted Rings
-            FullWidthLiveVisualizer(isListening = isListening, illuminationAlpha = illuminationAlpha)
+            LiveMicVisualizer(isListening = isListening, illuminationAlpha = illuminationAlpha)
 
             Spacer(modifier = Modifier.height(32.dp))
 
@@ -222,192 +175,115 @@ fun LiveMicDeck() {
     }
 }
 
-// --- REBUILT COMPONENTS ---
-
-@Composable
-fun FullWidthLiveVisualizer(isListening: Boolean, illuminationAlpha: Float) {
-    Box(
-        contentAlignment = Alignment.Center,
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(260.dp)
-    ) {
-        BackgroundWaveform(isListening = isListening)
-        
-        // Wrap StableRingsVisualizer
-        // We removed the shadow/clip modifiers here to eliminate the "octagon" bug
-        // when working with transparent backgrounds. We now draw the glow in Canvas.
-        Box(
-            contentAlignment = Alignment.Center,
-            modifier = Modifier.size(240.dp)
-        ) {
-            StableRingsVisualizer(isListening = isListening, illuminationAlpha = illuminationAlpha)
-        }
-    }
-}
-
-@Composable
-fun BackgroundWaveform(isListening: Boolean) {
-    val infiniteTransition = rememberInfiniteTransition(label = "wave")
-    val phase by infiniteTransition.animateFloat(
-        initialValue = 0f,
-        targetValue = (2 * Math.PI).toFloat(),
-        animationSpec = infiniteRepeatable(tween(3500, easing = LinearEasing)),
-        label = "phase"
-    )
-
-    val waveBrush = Brush.horizontalGradient(colors = rainbowColors)
-
-    Canvas(modifier = Modifier.fillMaxSize()) {
-        val barWidth = 3.dp.toPx()
-        val gap = 3.dp.toPx()
-        val step = barWidth + gap
-        val totalBars = (size.width / step).toInt()
-        val maxLineHeight = size.height * 0.4f
-
-        for (i in 0 until totalBars) {
-            val normalizedPos = (i.toFloat() / (totalBars - 1)) * 2 - 1
-            val masterTaper = cos(normalizedPos * Math.PI / 2).toFloat()
-            val repeatingBumps = abs(cos(normalizedPos * Math.PI * 2.5 - phase)).toFloat()
-            val envelope = masterTaper * repeatingBumps
-
-            val heightMultiplier = if (isListening) {
-                val noise = abs(sin((i * 0.3f) - (phase * 1.2f))) * 0.6f + 0.4f
-                envelope * noise
-            } else {
-                envelope * 0.15f
-            }
-
-            val currentHeight = maxLineHeight * heightMultiplier
-            val xPos = i * step + (barWidth / 2)
-
-            drawLine(
-                brush = waveBrush,
-                start = Offset(xPos, size.height / 2 - (currentHeight / 2)),
-                end = Offset(xPos, size.height / 2 + (currentHeight / 2)),
-                strokeWidth = barWidth,
-                cap = StrokeCap.Round,
-                alpha = if (isListening) 1.0f else 0.2f
-            )
-        }
-    }
-}
-
-@Composable
-fun StableRingsVisualizer(isListening: Boolean, illuminationAlpha: Float) {
-    Canvas(modifier = Modifier.fillMaxSize()) {
-        val center = Offset(size.width / 2, size.height / 2)
-        val maxRadius = size.width / 2
-
-        // --- 4 RINGS & ULTRA-TIGHT SPACING ---
-        val outerRadius = maxRadius - 12.dp.toPx()
-        val baseInnerRadius = outerRadius - 12.dp.toPx()
-        val ringGap = 3.dp.toPx() // Razor thin gap
-
-        val step1Radius = baseInnerRadius - ringGap
-        val step2Radius = step1Radius - ringGap
-        val step3Radius = step2Radius - ringGap
-
-        val ringBrush = Brush.sweepGradient(rainbowColors, center)
-        val dotStrokeWidth = 2.dp.toPx()
-
-        // FIXED: Stable static dashes, completely removing the "marching" animation phase
-        val stableDottedEffect = PathEffect.dashPathEffect(floatArrayOf(4f, 8f), 0f)
-
-        // 0. Manual Glows (Replacing Shadow to avoid Octagon and keep transparency)
-        if (isListening) {
-            // White outer aura - Hollow center
-            drawCircle(
-                brush = Brush.radialGradient(
-                    0.0f to Color.Transparent,
-                    0.7f to Color.Transparent,
-                    0.85f to Color.White.copy(alpha = illuminationAlpha * 0.3f),
-                    1.0f to Color.Transparent,
-                    center = center,
-                    radius = maxRadius + 40.dp.toPx()
-                ),
-                radius = maxRadius + 40.dp.toPx()
-            )
-
-            // Rainbow sweep aura (limited to the ring area)
-            drawCircle(
-                brush = Brush.sweepGradient(rainbowColors, center),
-                radius = maxRadius,
-                alpha = illuminationAlpha * 0.3f,
-                style = Stroke(width = 32.dp.toPx())
-            )
-        }
-
-        // 1. Dark mask behind the rings - Clear in the center to show the waveform
-        // We use a RadialGradient with multiple color stops to create a "hollow" dark ring.
-        drawCircle(
-            brush = Brush.radialGradient(
-                0.0f to Color.Transparent,
-                0.55f to Color.Transparent, 
-                0.7f to Color.Black.copy(alpha = 0.8f),
-                0.95f to Color.Black.copy(alpha = 0.8f),
-                1.0f to Color.Transparent,
-                center = center,
-                radius = maxRadius
-            )
-        )
-
-        // 1. The Main Static Rainbow Ring
-        drawCircle(
-            brush = ringBrush,
-            radius = outerRadius,
-            style = Stroke(width = 12.dp.toPx())
-        )
-
-        // The Inner Dotted Rings (Completely Stable)
-        if (isListening) {
-            // Base Inner Ring (100% Brightness)
-            drawCircle(brush = ringBrush, radius = baseInnerRadius, alpha = 1.0f, style = Stroke(width = dotStrokeWidth, cap = StrokeCap.Round, pathEffect = stableDottedEffect))
-
-            // Step 1 Ring (75% Brightness)
-            drawCircle(brush = ringBrush, radius = step1Radius, alpha = 0.75f, style = Stroke(width = dotStrokeWidth, cap = StrokeCap.Round, pathEffect = stableDottedEffect))
-
-            // Step 2 Ring (50% Brightness)
-            drawCircle(brush = ringBrush, radius = step2Radius, alpha = 0.50f, style = Stroke(width = dotStrokeWidth, cap = StrokeCap.Round, pathEffect = stableDottedEffect))
-
-            // Step 3 Ring (25% Brightness)
-            drawCircle(brush = ringBrush, radius = step3Radius, alpha = 0.25f, style = Stroke(width = dotStrokeWidth, cap = StrokeCap.Round, pathEffect = stableDottedEffect))
-
-        } else {
-            // When OFF, only the base inner ring shows as static dark grey
-            drawCircle(color = Color.DarkGray, radius = baseInnerRadius, style = Stroke(width = dotStrokeWidth, cap = StrokeCap.Round, pathEffect = stableDottedEffect))
-        }
-    }
-}
-
 @Composable
 fun RedGreenToggleSwitch(isOn: Boolean, onToggle: () -> Unit) {
     val borderColor by animateColorAsState(targetValue = if (isOn) Color(0xFF00FF00) else Color(0xFFFF0000), label = "border")
     val textColor by animateColorAsState(targetValue = if (isOn) Color(0xFF00FF00) else Color(0xFFFF0000), label = "text")
-    val thumbGlow by animateColorAsState(targetValue = if (isOn) Color(0xFF00FF00) else Color(0xFFFF0000), label = "thumbGlow")
+    val thumbGlowColor by animateColorAsState(targetValue = if (isOn) Color(0xFF00FF00) else Color(0xFFFF0000), label = "thumbGlow")
 
     Box(
         modifier = Modifier
             .width(130.dp)
             .height(56.dp)
-            .shadow(if (isOn) 12.dp else 0.dp, RoundedCornerShape(50), spotColor = borderColor)
+            .drawBehind {
+                if (isOn) {
+                    drawRoundRect(
+                        brush = Brush.verticalGradient(
+                            listOf(borderColor.copy(alpha = 0.15f), Color.Transparent)
+                        ),
+                        cornerRadius = androidx.compose.ui.geometry.CornerRadius(28.dp.toPx())
+                    )
+                }
+            }
             .clip(RoundedCornerShape(50))
-            .background(Color(0xFF111111)) // Hollow center
-            .border(2.dp, borderColor, RoundedCornerShape(50))
+            .background(Color(0xFF080808))
+            .border(1.5.dp, borderColor.copy(alpha = 0.5f), RoundedCornerShape(50))
             .clickable { onToggle() }
-            .padding(6.dp)
+            .padding(6.dp),
+        contentAlignment = Alignment.Center
     ) {
+        // Track Background Glow
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(4.dp)
+                .drawBehind {
+                    val glowRadius = 40.dp.toPx()
+                    val centerOff = if (isOn) size.width - 24.dp.toPx() else 24.dp.toPx()
+                    drawCircle(
+                        brush = Brush.radialGradient(
+                            0.0f to thumbGlowColor.copy(alpha = 0.4f),
+                            1.0f to Color.Transparent,
+                            center = androidx.compose.ui.geometry.Offset(centerOff, size.height / 2),
+                            radius = glowRadius
+                        ),
+                        radius = glowRadius,
+                        center = androidx.compose.ui.geometry.Offset(centerOff, size.height / 2)
+                    )
+                }
+        )
+
         Row(
             modifier = Modifier.fillMaxSize().padding(horizontal = 4.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
+            horizontalArrangement = if (isOn) Arrangement.End else Arrangement.Start
         ) {
             if (isOn) {
-                Text("ON", color = textColor, fontSize = 18.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(start = 12.dp))
-                Box(modifier = Modifier.size(40.dp).shadow(8.dp, CircleShape, spotColor = thumbGlow).clip(CircleShape).background(Color.White))
+                Text(
+                    "ON", 
+                    color = textColor, 
+                    fontSize = 16.sp, 
+                    fontWeight = FontWeight.Black, 
+                    modifier = Modifier.padding(end = 16.dp).weight(1f),
+                    textAlign = TextAlign.Center
+                )
+                // Glowy Thumb
+                Box(
+                    modifier = Modifier
+                        .size(42.dp)
+                        .drawBehind {
+                            drawCircle(
+                                brush = Brush.radialGradient(
+                                    0.5f to thumbGlowColor.copy(alpha = 0.9f),
+                                    1.0f to Color.Transparent,
+                                    center = center,
+                                    radius = 21.dp.toPx()
+                                ),
+                                radius = 21.dp.toPx()
+                            )
+                        }
+                        .clip(CircleShape)
+                        .background(Color.White)
+                        .border(1.dp, Color.White.copy(alpha = 0.5f), CircleShape)
+                )
             } else {
-                Box(modifier = Modifier.size(40.dp).shadow(8.dp, CircleShape, spotColor = thumbGlow).clip(CircleShape).background(Color.White))
-                Text("OFF", color = textColor, fontSize = 18.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(end = 12.dp))
+                // Glowy Thumb
+                Box(
+                    modifier = Modifier
+                        .size(42.dp)
+                        .drawBehind {
+                            drawCircle(
+                                brush = Brush.radialGradient(
+                                    0.5f to thumbGlowColor.copy(alpha = 0.9f),
+                                    1.0f to Color.Transparent,
+                                    center = center,
+                                    radius = 21.dp.toPx()
+                                ),
+                                radius = 21.dp.toPx()
+                            )
+                        }
+                        .clip(CircleShape)
+                        .background(Color.White)
+                        .border(1.dp, Color.White.copy(alpha = 0.5f), CircleShape)
+                )
+                Text(
+                    "OFF", 
+                    color = textColor, 
+                    fontSize = 16.sp, 
+                    fontWeight = FontWeight.Black, 
+                    modifier = Modifier.padding(start = 16.dp).weight(1f),
+                    textAlign = TextAlign.Center
+                )
             }
         }
     }

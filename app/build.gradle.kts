@@ -65,6 +65,7 @@ dependencies {
     implementation(Dependencies.composeMaterialIcons)
 
     implementation(Dependencies.timber)
+    implementation(Dependencies.splashscreen)
 
     implementation(platform(Dependencies.firebase))
     implementation(Dependencies.firebaseAnalytics)
