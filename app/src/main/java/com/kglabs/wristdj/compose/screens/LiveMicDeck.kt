@@ -33,15 +33,13 @@ import com.kglabs.wristdj.compose.components.LiveMicVisualizer
 import com.kglabs.wristdj.compose.components.StudioBackground
 import com.kglabs.wristdj.utils.BandColorConstants
 import com.kglabs.wristdj.utils.IRUtils
-import com.kglabs.wristdj.utils.MicAnalyzer
+import com.kglabs.wristdj.utils.GlobalMicAnalyzer
 import com.kglabs.wristdj.utils.ToneType
 
 @Composable
 fun LiveMicDeck() {
     val context = LocalContext.current
-    val micAnalyzer = remember { MicAnalyzer(context) }
-
-    var isListening by remember { mutableStateOf(false) }
+    var isListening by GlobalMicAnalyzer.isListening
     var sensitivity by remember { mutableStateOf(0.7f) }
     var currentThreshold by remember { mutableStateOf(2500) }
 
@@ -66,7 +64,7 @@ fun LiveMicDeck() {
         hasPermission = isGranted
         if (!isGranted) {
             isListening = false
-            micAnalyzer.stopListening()
+            GlobalMicAnalyzer.stopListening()
         }
     }
 
@@ -74,10 +72,38 @@ fun LiveMicDeck() {
         if (!hasPermission) permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
     }
 
-    DisposableEffect(Unit) {
-        onDispose {
-            micAnalyzer.stopListening()
-            isListening = false
+    // Ensure mic analyzer is correctly synced with the global state when returning to screen
+    LaunchedEffect(Unit) {
+        if (isListening) {
+             GlobalMicAnalyzer.startListening(
+                context = context,
+                getSensitivity = { sensitivity }
+            ) { toneType ->
+                val selectedColorName = when (toneType) {
+                    ToneType.BASS -> BandColorConstants.bassColors.random()
+                    ToneType.MID -> BandColorConstants.midColors.random()
+                    ToneType.HIGH -> BandColorConstants.highColors.random()
+                }
+                colorToSignalMap[selectedColorName]?.let { IRUtils.transmitSignal(it) }
+            }
+        }
+    }
+
+    LaunchedEffect(isListening) {
+        if (isListening) {
+            GlobalMicAnalyzer.startListening(
+                context = context,
+                getSensitivity = { sensitivity }
+            ) { toneType ->
+                val selectedColorName = when (toneType) {
+                    ToneType.BASS -> BandColorConstants.bassColors.random()
+                    ToneType.MID -> BandColorConstants.midColors.random()
+                    ToneType.HIGH -> BandColorConstants.highColors.random()
+                }
+                colorToSignalMap[selectedColorName]?.let { IRUtils.transmitSignal(it) }
+            }
+        } else {
+            GlobalMicAnalyzer.stopListening()
         }
     }
 
@@ -127,9 +153,12 @@ fun LiveMicDeck() {
                         permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
                         return@RedGreenToggleSwitch
                     }
-                    isListening = !isListening
                     if (isListening) {
-                        micAnalyzer.startListening(
+                        GlobalMicAnalyzer.stopListening()
+                    } else {
+                        IRUtils.stopManualTransmission()
+                        GlobalMicAnalyzer.startListening(
+                            context = context,
                             getSensitivity = { sensitivity }
                         ) { toneType ->
                             val selectedColorName = when (toneType) {
@@ -139,8 +168,6 @@ fun LiveMicDeck() {
                             }
                             colorToSignalMap[selectedColorName]?.let { IRUtils.transmitSignal(it) }
                         }
-                    } else {
-                        micAnalyzer.stopListening()
                     }
                 }
             )

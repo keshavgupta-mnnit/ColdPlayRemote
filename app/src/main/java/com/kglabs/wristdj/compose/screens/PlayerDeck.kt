@@ -66,6 +66,13 @@ fun PlayerDeck() {
     val permissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { hasPermission = it }
     LaunchedEffect(Unit) { if (!hasPermission) permissionLauncher.launch(Manifest.permission.RECORD_AUDIO) }
 
+    // Pause playback when leaving the Player functionality
+    DisposableEffect(Unit) {
+        onDispose {
+            // GlobalAudioPlayer.pause() // Removed as per request: song should keep playing when moving between screens
+        }
+    }
+
     val onBeat: (ToneType) -> Unit = { toneType ->
         val colorName = when (toneType) {
             ToneType.BASS -> BandColorConstants.bassColors.random()

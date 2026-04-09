@@ -185,6 +185,8 @@ object GlobalAudioPlayer {
     // 3. Playback Controls
     fun playTrackAt(context: Context, index: Int, onBeatDetected: (ToneType) -> Unit) {
         if (index !in playlist.indices) return
+        GlobalMicAnalyzer.stopListening()
+        IRUtils.stopManualTransmission()
         stop()
         currentTrackIndex.value = index
         val track = playlist[index]
@@ -210,9 +212,10 @@ object GlobalAudioPlayer {
     fun togglePlayPause(context: Context, onBeatDetected: (ToneType) -> Unit) {
         mediaPlayer?.let { player ->
             if (player.isPlaying) {
-                player.pause()
-                isPlaying.value = false
+                pause()
             } else {
+                GlobalMicAnalyzer.stopListening()
+                IRUtils.stopManualTransmission()
                 player.start()
                 isPlaying.value = true
                 startProgressTracker()
@@ -220,6 +223,15 @@ object GlobalAudioPlayer {
         } ?: run {
             if (playlist.isNotEmpty()) {
                 playTrackAt(context, currentTrackIndex.value.takeIf { it != -1 } ?: 0, onBeatDetected)
+            }
+        }
+    }
+
+    fun pause() {
+        mediaPlayer?.let {
+            if (it.isPlaying) {
+                it.pause()
+                isPlaying.value = false
             }
         }
     }

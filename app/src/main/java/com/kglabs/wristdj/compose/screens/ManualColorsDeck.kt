@@ -17,6 +17,10 @@ import com.kglabs.wristdj.compose.components.ColorSwatchButton
 import com.kglabs.wristdj.compose.components.StudioBackground
 import com.kglabs.wristdj.utils.BandColorConstants
 import com.kglabs.wristdj.utils.IRUtils
+import com.kglabs.wristdj.utils.GlobalMicAnalyzer
+import com.kglabs.wristdj.utils.GlobalAudioPlayer
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import kotlinx.coroutines.delay
 
 @Composable
@@ -28,13 +32,17 @@ fun ManualColorsDeck() {
     var activeSignal by remember { mutableStateOf(colorToSignalMap["Cyan"]) }
 
     // Toggle for continuous transmission
-    var isTransmittingContinuously by remember { mutableStateOf(false) }
+    var isTransmittingContinuously by IRUtils.isManualTransmitting
 
     val scrollState = rememberScrollState()
 
     // --- CONTINUOUS FIRING LOOP ---
     LaunchedEffect(isTransmittingContinuously, activeSignal) {
         if (isTransmittingContinuously && activeSignal != null) {
+            // Stop other sources
+            GlobalMicAnalyzer.stopListening()
+            GlobalAudioPlayer.pause()
+
             while (true) {
                 IRUtils.transmitSignal(activeSignal!!)
                 delay(300)

@@ -3,10 +3,17 @@ package com.kglabs.wristdj.utils
 import android.content.Context
 import android.hardware.ConsumerIrManager
 import android.os.*
+import androidx.compose.runtime.mutableStateOf
 import com.kglabs.wristdj.MainApplication
 import timber.log.Timber
 
 object IRUtils {
+    var isManualTransmitting = mutableStateOf(false)
+    
+    fun stopManualTransmission() {
+        isManualTransmitting.value = false
+    }
+
     private val irManager: ConsumerIrManager? by lazy {
         MainApplication.getInstance().let {
             it.getSystemService(Context.CONSUMER_IR_SERVICE) as? ConsumerIrManager
