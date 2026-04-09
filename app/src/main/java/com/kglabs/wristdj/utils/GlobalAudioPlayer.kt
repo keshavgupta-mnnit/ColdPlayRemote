@@ -11,6 +11,7 @@ import android.media.audiofx.Visualizer
 import android.net.Uri
 import android.provider.DocumentsContract
 import android.provider.OpenableColumns
+import timber.log.Timber
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import kotlinx.coroutines.*
@@ -64,7 +65,7 @@ object GlobalAudioPlayer {
             }
             if (uris.isNotEmpty()) addTracks(context, uris, isInitialLoad = true)
         } catch (e: Exception) {
-            e.printStackTrace()
+            Timber.e(e, "Failed to load playlist")
         }
     }
 
@@ -183,7 +184,7 @@ object GlobalAudioPlayer {
                     withContext(Dispatchers.Main) { addTracks(context, audioUris) }
                 }
             } catch (e: Exception) {
-                e.printStackTrace()
+                Timber.e(e, "Failed to add tracks from folder")
             }
         }
     }
@@ -194,10 +195,16 @@ object GlobalAudioPlayer {
         stop()
         currentTrackIndex.value = index
         val track = playlist[index]
-        mediaPlayer = MediaPlayer.create(context, track.uri)?.apply {
-            start()
-            setOnCompletionListener { next(context, onBeatDetected) }
+        try {
+            mediaPlayer = MediaPlayer.create(context, track.uri)?.apply {
+                setOnCompletionListener { next(context, onBeatDetected) }
+                start()
+            }
+        } catch (e: Exception) {
+            Timber.e(e, "Failed to create or start MediaPlayer for uri: ${track.uri}")
+            mediaPlayer = null
         }
+        
         if (mediaPlayer == null) {
             isPlaying.value = false
             return
@@ -240,12 +247,21 @@ object GlobalAudioPlayer {
 
     fun stop() {
         progressJob?.cancel()
-        visualizer?.enabled = false
-        visualizer?.release()
+        try {
+            visualizer?.enabled = false
+            visualizer?.release()
+        } catch (e: Exception) {
+            Timber.e(e, "Error releasing visualizer")
+        }
         visualizer = null
+        
         mediaPlayer?.let {
-            if (it.isPlaying) it.stop()
-            it.release()
+            try {
+                if (it.isPlaying) it.stop()
+                it.release()
+            } catch (e: Exception) {
+                Timber.e(e, "Error stopping/releasing MediaPlayer")
+            }
         }
         mediaPlayer = null
         isPlaying.value = false
@@ -270,8 +286,15 @@ object GlobalAudioPlayer {
         progressJob?.cancel()
         progressJob = scope.launch {
             while (isPlaying.value) {
-                val player = mediaPlayer ?: break
-                currentPosition.value = player.currentPosition
+                try {
+                    val player = mediaPlayer ?: break
+                    if (player.isPlaying) {
+                        currentPosition.value = player.currentPosition
+                    }
+                } catch (e: Exception) {
+                    Timber.e(e, "Error in progress tracker")
+                    break
+                }
                 delay(500)
             }
         }
@@ -279,32 +302,37 @@ object GlobalAudioPlayer {
 
     private fun setupVisualizer(onBeatDetected: (ToneType) -> Unit) {
         mediaPlayer?.let { player ->
-            visualizer = Visualizer(player.audioSessionId).apply {
-                captureSize = Visualizer.getCaptureSizeRange()[1]
-                setDataCaptureListener(object : Visualizer.OnDataCaptureListener {
-                    override fun onWaveFormDataCapture(v: Visualizer, waveform: ByteArray, rate: Int) {}
-                    override fun onFftDataCapture(v: Visualizer, fft: ByteArray, rate: Int) {
-                        if (fft.isEmpty() || !isPlaying.value) return
-                        var bassMag = 0.0; var midMag = 0.0; var highMag = 0.0
-                        for (i in 2 until fft.size step 2) {
-                            if (i + 1 < fft.size) {
-                                val mag = hypot(fft[i].toDouble(), fft[i + 1].toDouble())
-                                when (i) {
-                                    in 2..6 -> bassMag += mag
-                                    in 12..24 -> midMag += mag
-                                    in 36..56 -> highMag += mag
+            try {
+                visualizer = Visualizer(player.audioSessionId).apply {
+                    captureSize = Visualizer.getCaptureSizeRange()[1]
+                    setDataCaptureListener(object : Visualizer.OnDataCaptureListener {
+                        override fun onWaveFormDataCapture(v: Visualizer, waveform: ByteArray, rate: Int) {}
+                        override fun onFftDataCapture(v: Visualizer, fft: ByteArray, rate: Int) {
+                            if (fft.isEmpty() || !isPlaying.value) return
+                            var bassMag = 0.0; var midMag = 0.0; var highMag = 0.0
+                            for (i in 2 until fft.size step 2) {
+                                if (i + 1 < fft.size) {
+                                    val mag = hypot(fft[i].toDouble(), fft[i + 1].toDouble())
+                                    when (i) {
+                                        in 2..6 -> bassMag += mag
+                                        in 12..24 -> midMag += mag
+                                        in 36..56 -> highMag += mag
+                                    }
                                 }
                             }
+                            val now = System.currentTimeMillis()
+                            if (now - lastBeatTime > 250) {
+                                if (bassMag > 120.0) { lastBeatTime = now; onBeatDetected(ToneType.BASS) }
+                                else if (midMag > 90.0) { lastBeatTime = now; onBeatDetected(ToneType.MID) }
+                                else if (highMag > 60.0) { lastBeatTime = now; onBeatDetected(ToneType.HIGH) }
+                            }
                         }
-                        val now = System.currentTimeMillis()
-                        if (now - lastBeatTime > 250) {
-                            if (bassMag > 120.0) { lastBeatTime = now; onBeatDetected(ToneType.BASS) }
-                            else if (midMag > 90.0) { lastBeatTime = now; onBeatDetected(ToneType.MID) }
-                            else if (highMag > 60.0) { lastBeatTime = now; onBeatDetected(ToneType.HIGH) }
-                        }
-                    }
-                }, Visualizer.getMaxCaptureRate() / 2, false, true)
-                enabled = true
+                    }, Visualizer.getMaxCaptureRate() / 2, false, true)
+                    enabled = true
+                }
+            } catch (e: Exception) {
+                Timber.e(e, "Failed to initialize visualizer")
+                visualizer = null
             }
         }
     }
