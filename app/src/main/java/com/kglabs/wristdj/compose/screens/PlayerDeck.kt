@@ -1,7 +1,13 @@
 package com.kglabs.wristdj.compose.screens
 
 import android.Manifest
+import android.content.ComponentName
+import android.content.Context
+import android.content.Intent
+import android.content.ServiceConnection
 import android.content.pm.PackageManager
+import android.os.Build
+import android.os.IBinder
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -18,16 +24,20 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import com.kglabs.wristdj.compose.components.GlowingMediaButton
 import com.kglabs.wristdj.compose.components.StudioBackground
 import com.kglabs.wristdj.compose.components.VinylRecord
 import com.kglabs.wristdj.models.AudioTrack
+import com.kglabs.wristdj.services.MusicPlayerService
 import com.kglabs.wristdj.utils.BandColorConstants
 import com.kglabs.wristdj.utils.GlobalAudioPlayer
 import com.kglabs.wristdj.utils.IRUtils
@@ -37,6 +47,8 @@ import com.kglabs.wristdj.utils.ToneType
 @Composable
 fun PlayerDeck() {
     val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
+
     val isPlaying by GlobalAudioPlayer.isPlaying
     val playlist = GlobalAudioPlayer.playlist
     val currentIndex by GlobalAudioPlayer.currentTrackIndex
@@ -55,6 +67,56 @@ fun PlayerDeck() {
 
     val colorToSignalMap = remember { BandColorConstants.buttons.toMap() }
 
+    // --- Service Connection State ---
+    var musicService by remember { mutableStateOf<MusicPlayerService?>(null) }
+
+    // --- Hook #1 - Bind to the background service ---
+    DisposableEffect(context) {
+        val intent = Intent(context, MusicPlayerService::class.java)
+        val serviceConnection = object : ServiceConnection {
+            override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
+                val binder = service as MusicPlayerService.LocalBinder
+                musicService = binder.getService()
+            }
+            override fun onServiceDisconnected(name: ComponentName?) {
+                musicService = null
+            }
+        }
+
+        context.startService(intent)
+        context.bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE)
+
+        onDispose {
+            context.unbindService(serviceConnection)
+        }
+    }
+
+    // --- Hook #2 - Watch for minimize/maximize using ON_PAUSE and ON_RESUME ---
+    DisposableEffect(lifecycleOwner, musicService, isPlaying) {
+        val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_PAUSE -> {
+                    // App is going to background: show notification if playing
+                    if (isPlaying) {
+                        musicService?.promoteToForeground(
+                            title = currentTrack?.title ?: "Wrist DJ",
+                            albumArt = currentTrack?.albumArt
+                        )
+                    }
+                }
+                Lifecycle.Event.ON_RESUME -> {
+                    // App is back in foreground: hide notification
+                    musicService?.demoteToBackground()
+                }
+                else -> {}
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
+
     val filePickerLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { uris ->
         if (uris.isNotEmpty()) GlobalAudioPlayer.addTracks(context, uris)
     }
@@ -62,15 +124,23 @@ fun PlayerDeck() {
         uri?.let { GlobalAudioPlayer.addTracksFromFolder(context, it) }
     }
 
-    var hasPermission by remember { mutableStateOf(ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) }
-    val permissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { hasPermission = it }
-    LaunchedEffect(Unit) { if (!hasPermission) permissionLauncher.launch(Manifest.permission.RECORD_AUDIO) }
+    // --- UPGRADED: Ask for Mic AND Notifications at the same time ---
+    var hasPermission by remember {
+        mutableStateOf(ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED)
+    }
 
-    // Pause playback when leaving the Player functionality
-    DisposableEffect(Unit) {
-        onDispose {
-            // GlobalAudioPlayer.pause() // Removed as per request: song should keep playing when moving between screens
+    val permissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        hasPermission = permissions[Manifest.permission.RECORD_AUDIO] == true
+    }
+
+    LaunchedEffect(Unit) {
+        val permissionsToAsk = mutableListOf(Manifest.permission.RECORD_AUDIO)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            permissionsToAsk.add(Manifest.permission.POST_NOTIFICATIONS)
         }
+        permissionLauncher.launch(permissionsToAsk.toTypedArray())
     }
 
     val onBeat: (ToneType) -> Unit = { toneType ->
@@ -91,20 +161,20 @@ fun PlayerDeck() {
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text("Wrist DJ - Player", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 16.dp, bottom = 32.dp))
-            
+
             VinylRecord(
                 albumArt = currentTrack?.albumArt,
                 progress = if (isDragging) sliderPosition else progressPercent,
                 isPlaying = isPlaying,
                 glowColor = currentTrack?.glowColor ?: Color(0xFFFFA500)
             )
-            
+
             Spacer(modifier = Modifier.height(24.dp))
-            
+
             Text(currentTrack?.title ?: "No Track Selected", color = Color.White, fontSize = 22.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center)
-            
+
             Spacer(modifier = Modifier.height(24.dp))
-            
+
             Row(
                 modifier = Modifier.fillMaxWidth(0.9f),
                 horizontalArrangement = Arrangement.SpaceEvenly,
