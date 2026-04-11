@@ -6,6 +6,7 @@ import android.content.pm.PackageManager
 import android.media.AudioFormat
 import android.media.AudioRecord
 import android.media.MediaRecorder
+import timber.log.Timber
 import androidx.core.app.ActivityCompat
 import kotlinx.coroutines.*
 import kotlin.math.sqrt
@@ -89,7 +90,7 @@ class MicAnalyzer(private val context: Context) {
             audioRecord?.stop()
             audioRecord?.release()
         } catch (e: Exception) {
-            // Log error or ignore
+            Timber.e(e, "Failed to stop/release AudioRecord")
         } finally {
             audioRecord = null
         }

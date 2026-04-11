@@ -3,10 +3,17 @@ package com.kglabs.wristdj.utils
 import android.content.Context
 import android.hardware.ConsumerIrManager
 import android.os.*
+import androidx.compose.runtime.mutableStateOf
 import com.kglabs.wristdj.MainApplication
 import timber.log.Timber
 
 object IRUtils {
+    var isManualTransmitting = mutableStateOf(false)
+    
+    fun stopManualTransmission() {
+        isManualTransmitting.value = false
+    }
+
     private val irManager: ConsumerIrManager? by lazy {
         MainApplication.getInstance().let {
             it.getSystemService(Context.CONSUMER_IR_SERVICE) as? ConsumerIrManager
@@ -29,10 +36,18 @@ object IRUtils {
     fun transmitSignal(codeString: String, frequency: Int = 38000) {
         if (codeString.isEmpty()) return
         
-        val code = signalCache.getOrPut(codeString) {
-            codeString.split(",").map { it.trim().toInt() }.toIntArray()
+        try {
+            val code = signalCache.getOrPut(codeString) {
+                codeString.split(",").mapNotNull { it.trim().toIntOrNull() }.toIntArray()
+            }
+            if (code.isNotEmpty()) {
+                transmitSignal(code, frequency)
+            } else {
+                Timber.w("Parsed IR code is empty: $codeString")
+            }
+        } catch (e: Exception) {
+            Timber.e(e, "Failed to parse or transmit IR signal: $codeString")
         }
-        transmitSignal(code, frequency)
     }
 
     fun hasIrEmitter(): Boolean {

@@ -20,6 +20,7 @@ object Dependencies {
     val coroutines by lazy {"org.jetbrains.kotlinx:kotlinx-coroutines-android:${Versions.coroutines}"}
 
     val timber by lazy { "com.jakewharton.timber:timber:${Versions.timber}" }
+    val splashscreen by lazy { "androidx.core:core-splashscreen:${Versions.splashscreen}" }
 
     val firebase by lazy { "com.google.firebase:firebase-bom:${Versions.firebase}" }
     val firebaseAnalytics by lazy { "com.google.firebase:firebase-analytics" }

@@ -21,4 +21,5 @@ object Versions {
     const val composeMaterialIcons = "1.7.5"
     const val firebase = "33.7.0"
     const val timber = "5.0.1"
+    const val splashscreen = "1.0.1"
 }

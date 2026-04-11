@@ -1,0 +1,12 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="200dp"
+    android:height="40dp"
+    android:viewportWidth="200"
+    android:viewportHeight="40">
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M20,10 L25,30 L30,10 L35,30 L40,10" />
+    <!-- This is a placeholder for a text-based branding logo.
+         Since VectorDrawable doesn't support <text>, we usually use a PNG or path data for the name.
+         I will use a simple path for now, but for a real app, you'd export the text 'WristDJ' as a SVG/Vector. -->
+</vector>
