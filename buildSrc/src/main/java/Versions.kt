@@ -22,4 +22,5 @@ object Versions {
     const val firebase = "33.7.0"
     const val timber = "5.0.1"
     const val splashscreen = "1.0.1"
+    const val media = "1.7.0"
 }

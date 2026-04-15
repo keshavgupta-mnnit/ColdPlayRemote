@@ -21,6 +21,7 @@ object Dependencies {
 
     val timber by lazy { "com.jakewharton.timber:timber:${Versions.timber}" }
     val splashscreen by lazy { "androidx.core:core-splashscreen:${Versions.splashscreen}" }
+    val media by lazy { "androidx.media:media:${Versions.media}" }
 
     val firebase by lazy { "com.google.firebase:firebase-bom:${Versions.firebase}" }
     val firebaseAnalytics by lazy { "com.google.firebase:firebase-analytics" }

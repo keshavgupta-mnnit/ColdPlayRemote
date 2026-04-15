@@ -20,7 +20,11 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
+import org.json.JSONObject
 import timber.log.Timber
+import java.io.File
+import java.io.FileOutputStream
+import java.util.UUID
 import kotlin.math.hypot
 
 object GlobalAudioPlayer {
@@ -37,8 +41,11 @@ object GlobalAudioPlayer {
     private val scope = CoroutineScope(Dispatchers.Main)
     private var lastBeatTime = 0L
 
-    private const val PREFS_NAME = "WristDJ_Playlist"
-    private const val KEY_URIS = "playlist_uris"
+    private const val PREFS_NAME = "WristDJ_Playlist_V3"
+    private const val KEY_PLAYLIST_JSON = "playlist_data"
+    private const val KEY_FOLDERS_JSON = "authorized_folders"
+
+    private val authorizedFolders = mutableSetOf<String>()
 
     fun init(context: Context) {
         loadPlaylist(context)
@@ -47,113 +54,184 @@ object GlobalAudioPlayer {
     private fun savePlaylist(context: Context) {
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         val jsonArray = JSONArray()
-        playlist.forEach { jsonArray.put(it.uri.toString()) }
-        prefs.edit().putString(KEY_URIS, jsonArray.toString()).apply()
+        
+        playlist.forEach { track ->
+            try {
+                val obj = JSONObject().apply {
+                    put("uri", track.uri.toString())
+                    put("title", track.title)
+                    put("duration", track.duration)
+                }
+                jsonArray.put(obj)
+                
+                // Save album art to disk
+                track.albumArt?.let { bitmap ->
+                    val artFile = File(context.cacheDir, "art_${track.uri.toString().hashCode()}.jpg")
+                    if (!artFile.exists()) {
+                        FileOutputStream(artFile).use { out ->
+                            bitmap.compress(Bitmap.CompressFormat.JPEG, 70, out)
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                Timber.e(e, "Save failed for ${track.title}")
+            }
+        }
+        
+        val folderArray = JSONArray(authorizedFolders.toList())
+        
+        prefs.edit()
+            .putString(KEY_PLAYLIST_JSON, jsonArray.toString())
+            .putString(KEY_FOLDERS_JSON, folderArray.toString())
+            .apply()
     }
 
     private fun loadPlaylist(context: Context) {
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        val jsonString = prefs.getString(KEY_URIS, null) ?: return
-        try {
-            val jsonArray = JSONArray(jsonString)
-            val uris = mutableListOf<Uri>()
-            for (i in 0 until jsonArray.length()) {
-                uris.add(Uri.parse(jsonArray.getString(i)))
-            }
-            if (uris.isNotEmpty()) addTracks(context, uris, isInitialLoad = true)
-        } catch (e: Exception) {
-            Timber.e(e, "Failed to load playlist")
-        }
-    }
-
-    // 1. Scan and add files natively
-    fun addTracks(context: Context, uris: List<Uri>, isInitialLoad: Boolean = false) {
+        val jsonString = prefs.getString(KEY_PLAYLIST_JSON, null) ?: return
+        val folderString = prefs.getString(KEY_FOLDERS_JSON, "[]")
+        
         scope.launch(Dispatchers.IO) {
-            val newTracks = mutableListOf<AudioTrack>()
-            
-            for (uri in uris) {
-                // Prevent exact URI duplicates first
-                if (playlist.any { it.uri == uri }) continue
-
-                // Take persistable permission for the URI
-                try {
-                    val takeFlags: Int = Intent.FLAG_GRANT_READ_URI_PERMISSION or
-                            Intent.FLAG_GRANT_WRITE_URI_PERMISSION
-                    context.contentResolver.takePersistableUriPermission(uri, takeFlags)
-                } catch (e: Exception) {}
-
-                val mmr = MediaMetadataRetriever()
-                var title = ""
-                var duration = 0
-                var art: Bitmap? = null
-
-                try {
-                    mmr.setDataSource(context, uri)
-                    title = mmr.extractMetadata(MediaMetadataRetriever.METADATA_KEY_TITLE) ?: ""
-                    duration = mmr.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)?.toIntOrNull() ?: 0
-                    val artBytes = mmr.embeddedPicture
-                    art = artBytes?.let { BitmapFactory.decodeByteArray(it, 0, it.size) }
-                } catch (e: Exception) {
-                } finally {
-                    try { mmr.release() } catch (e: Exception) {}
-                }
-
-                // If Title is empty, get the actual filename
-                if (title.isBlank()) {
+            try {
+                // Restore Folder Permissions First
+                val folderArray = JSONArray(folderString)
+                for (i in 0 until folderArray.length()) {
+                    val folderUriStr = folderArray.getString(i)
+                    authorizedFolders.add(folderUriStr)
                     try {
-                        context.contentResolver.query(uri, null, null, null, null)?.use { cursor ->
-                            val nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
-                            if (cursor.moveToFirst()) {
-                                title = cursor.getString(nameIndex)
-                            }
-                        }
-                    } catch (e: Exception) {}
-                    
-                    if (title.isBlank()) {
-                        title = uri.lastPathSegment ?: "Unknown Track"
+                        context.contentResolver.takePersistableUriPermission(
+                            Uri.parse(folderUriStr),
+                            Intent.FLAG_GRANT_READ_URI_PERMISSION
+                        )
+                        Timber.d("Re-persisted folder: $folderUriStr")
+                    } catch (e: Exception) {
+                        Timber.w("Failed to re-persist folder: $folderUriStr")
                     }
                 }
-                
-                // Clean up technical names like "msf:100..." or "primary:Music/..."
-                if (title.contains(":") || title.contains("/")) {
-                    val decoded = Uri.decode(title)
-                    title = decoded.substringAfterLast("/")
-                    if (title.contains(":")) title = title.substringAfterLast(":")
-                }
-                
-                // Remove file extension if present
-                if (title.contains(".") && title.length > 4) {
-                    title = title.substringBeforeLast(".")
-                }
 
-                // Robust Duplicate Check: Check if this song (title, duration) is already in playlist
-                val isAlreadyInPlaylist = playlist.any { 
-                    it.title.equals(title, ignoreCase = true) && 
-                    Math.abs(it.duration - duration) < 1000 // allow 1s difference
+                val jsonArray = JSONArray(jsonString)
+                val loadedTracks = mutableListOf<AudioTrack>()
+                
+                for (i in 0 until jsonArray.length()) {
+                    val obj = jsonArray.getJSONObject(i)
+                    val uri = Uri.parse(obj.getString("uri"))
+                    
+                    // Note: individual file takePersistableUriPermission often fails for Tree URIs,
+                    // but we've refreshed the parent folder permission above.
+                    
+                    val title = obj.getString("title")
+                    val duration = obj.getInt("duration")
+                    
+                    val artFile = File(context.cacheDir, "art_${uri.toString().hashCode()}.jpg")
+                    val art = if (artFile.exists()) BitmapFactory.decodeFile(artFile.absolutePath) else null
+                    
+                    loadedTracks.add(AudioTrack(uri, title, duration, art))
                 }
-                val isAlreadyInNewBatch = newTracks.any { 
-                    it.title.equals(title, ignoreCase = true)
+                
+                withContext(Dispatchers.Main) {
+                    playlist.clear()
+                    playlist.addAll(loadedTracks)
+                    if (playlist.isNotEmpty()) currentTrackIndex.value = 0
                 }
+            } catch (e: Exception) {
+                Timber.e(e, "Load failed")
+            }
+        }
+    }
 
-                if (!isAlreadyInPlaylist && !isAlreadyInNewBatch) {
-                    newTracks.add(AudioTrack(uri, title.ifBlank { "Unknown Track" }, duration, art))
+    private fun extractTrackInfo(context: Context, uri: Uri, preResolvedName: String? = null): AudioTrack {
+        val mmr = MediaMetadataRetriever()
+        var title = preResolvedName ?: ""
+        var duration = 0
+        var art: Bitmap? = null
+
+        try {
+            mmr.setDataSource(context, uri)
+            val metaTitle = mmr.extractMetadata(MediaMetadataRetriever.METADATA_KEY_TITLE)
+            if (!metaTitle.isNullOrBlank()) title = metaTitle
+            
+            duration = mmr.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)?.toIntOrNull() ?: 0
+            val artBytes = mmr.embeddedPicture
+            art = artBytes?.let { BitmapFactory.decodeByteArray(it, 0, it.size) }
+        } catch (e: Exception) {
+            Timber.w("MMR failed for $uri")
+        } finally {
+            try { mmr.release() } catch (e: Exception) {}
+        }
+
+        if (title.isBlank() || isTechnicalId(title)) {
+            val fileName = getFileNameFromUri(context, uri)
+            if (!fileName.isNullOrBlank() && !isTechnicalId(fileName)) title = fileName
+        }
+
+        title = cleanTitle(title, uri)
+        return AudioTrack(uri, title, duration, art)
+    }
+
+    private fun isTechnicalId(text: String): Boolean = 
+        text.isBlank() || text.all { it.isDigit() || it == ':' || it == '_' || it == '-' || it == '.' }
+
+    private fun getFileNameFromUri(context: Context, uri: Uri): String? {
+        var name: String? = null
+        try {
+            context.contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use { cursor ->
+                if (cursor.moveToFirst()) name = cursor.getString(0)
+            }
+        } catch (e: Exception) {}
+        return name ?: uri.lastPathSegment
+    }
+
+    private fun cleanTitle(title: String, uri: Uri): String {
+        var cleaned = title
+        if (cleaned.contains(":") || cleaned.contains("/")) {
+            cleaned = Uri.decode(cleaned).substringAfterLast("/").substringAfterLast(":")
+        }
+        if (cleaned.contains(".") && cleaned.length > 4) cleaned = cleaned.substringBeforeLast(".")
+        if (isTechnicalId(cleaned)) {
+            val fromUri = Uri.decode(uri.toString()).substringAfterLast("/").substringBeforeLast(".")
+            if (!isTechnicalId(fromUri)) cleaned = fromUri
+        }
+        return cleaned.ifBlank { "Track ${UUID.randomUUID().toString().take(4)}" }
+    }
+
+    fun addTracks(context: Context, uris: List<Uri>, preResolvedNames: Map<Uri, String>? = null, isInitialLoad: Boolean = false) {
+        scope.launch(Dispatchers.IO) {
+            val newTracks = mutableListOf<AudioTrack>()
+            for (uri in uris) {
+                if (playlist.any { it.uri == uri }) continue
+                // Note: If uri is a child of a TreeUri, takePersistableUriPermission on it will fail.
+                // We rely on the parent treeUri permission instead.
+                
+                val track = extractTrackInfo(context, uri, preResolvedNames?.get(uri))
+                if (playlist.none { it.title == track.title && it.duration == track.duration }) {
+                    newTracks.add(track)
                 }
             }
 
-            withContext(Dispatchers.Main) {
-                playlist.addAll(newTracks)
-                if (!isInitialLoad && newTracks.isNotEmpty()) savePlaylist(context)
-                if (currentTrackIndex.value == -1 && playlist.isNotEmpty()) {
-                    currentTrackIndex.value = 0
+            if (newTracks.isNotEmpty()) {
+                withContext(Dispatchers.Main) {
+                    playlist.addAll(newTracks)
+                    savePlaylist(context) // Always save if we added tracks
+                    if (currentTrackIndex.value == -1) currentTrackIndex.value = 0
                 }
             }
         }
     }
 
-    // 2. Scan entire folders securely
     fun addTracksFromFolder(context: Context, treeUri: Uri) {
+        // Persist the root folder permission
+        try {
+            context.contentResolver.takePersistableUriPermission(
+                treeUri, Intent.FLAG_GRANT_READ_URI_PERMISSION
+            )
+            authorizedFolders.add(treeUri.toString())
+        } catch (e: Exception) {
+            Timber.e(e, "Failed to persist folder permission for $treeUri")
+        }
+
         scope.launch(Dispatchers.IO) {
             val audioUris = mutableListOf<Uri>()
+            val preResolvedNames = mutableMapOf<Uri, String>()
             try {
                 val childrenUri = DocumentsContract.buildChildDocumentsUriUsingTree(
                     treeUri, DocumentsContract.getTreeDocumentId(treeUri)
@@ -161,191 +239,187 @@ object GlobalAudioPlayer {
 
                 context.contentResolver.query(
                     childrenUri,
-                    arrayOf(DocumentsContract.Document.COLUMN_DOCUMENT_ID, DocumentsContract.Document.COLUMN_MIME_TYPE),
+                    arrayOf(
+                        DocumentsContract.Document.COLUMN_DOCUMENT_ID,
+                        DocumentsContract.Document.COLUMN_MIME_TYPE,
+                        DocumentsContract.Document.COLUMN_DISPLAY_NAME
+                    ),
                     null, null, null
                 )?.use { cursor ->
                     while (cursor.moveToNext()) {
                         val docId = cursor.getString(0)
                         val mimeType = cursor.getString(1)
-                        if (mimeType?.startsWith("audio/") == true) {
+                        val displayName = cursor.getString(2)
+                        
+                        if (mimeType?.startsWith("audio/") == true || mimeType?.contains("ogg") == true || mimeType?.contains("flac") == true) {
                             val fileUri = DocumentsContract.buildDocumentUriUsingTree(treeUri, docId)
                             audioUris.add(fileUri)
+                            if (!displayName.isNullOrBlank()) preResolvedNames[fileUri] = displayName
                         }
                     }
                 }
-                if (audioUris.isNotEmpty()) {
-                    withContext(Dispatchers.Main) { addTracks(context, audioUris) }
-                }
+                if (audioUris.isNotEmpty()) withContext(Dispatchers.Main) { addTracks(context, audioUris, preResolvedNames) }
             } catch (e: Exception) {
-                Timber.e(e, "Failed to add tracks from folder")
+                Timber.e(e, "Folder scan failed")
             }
         }
     }
 
-    // 3. Playback Controls
+    private var consecutiveErrors = 0
+    private const val MAX_CONSECUTIVE_ERRORS = 5
+
     fun playTrackAt(context: Context, index: Int, onBeatDetected: (ToneType) -> Unit) {
-        if (index !in playlist.indices) return
-        GlobalMicAnalyzer.stopListening()
-        IRUtils.stopManualTransmission()
-        stop()
-        currentTrackIndex.value = index
-        val track = playlist[index]
-        try {
-            mediaPlayer = MediaPlayer.create(context, track.uri)?.apply {
-                setOnCompletionListener { next(context, onBeatDetected) }
-                start()
-            }
-        } catch (e: Exception) {
-            Timber.e(e, "Failed to create or start MediaPlayer for uri: ${track.uri}")
-            mediaPlayer = null
-        }
-        
-        if (mediaPlayer == null) {
-            isPlaying.value = false
+        if (index !in playlist.indices) {
+            Timber.e("Index $index out of bounds for playlist size ${playlist.size}")
+            consecutiveErrors = 0 // Reset
             return
         }
-        isPlaying.value = true
-        startProgressTracker()
-        setupVisualizer(onBeatDetected)
+        stop()
+        
+        // Stop Mic if it's running
+        GlobalMicAnalyzer.stopListening()
+
+        currentTrackIndex.value = index
+        val track = playlist[index]
+        
+        try {
+            Timber.d("Attempting to play: ${track.title} (URI: ${track.uri})")
+            
+            mediaPlayer = MediaPlayer().apply {
+                setDataSource(context, track.uri)
+                setOnCompletionListener { 
+                    Timber.d("Playback completed for ${track.title}. Moving to next.")
+                    consecutiveErrors = 0
+                    next(context, onBeatDetected) 
+                }
+                setOnErrorListener { _, what, extra ->
+                    Timber.e("MediaPlayer Error: what=$what, extra=$extra")
+                    consecutiveErrors++
+                    if (consecutiveErrors < MAX_CONSECUTIVE_ERRORS) {
+                        next(context, onBeatDetected)
+                    } else {
+                        Timber.e("Too many consecutive errors, stopping playback.")
+                        GlobalAudioPlayer.isPlaying.value = false
+                        consecutiveErrors = 0
+                    }
+                    true // error handled
+                }
+                prepare()
+                start()
+            }
+            isPlaying.value = true
+            currentPosition.value = 0
+            startProgressTracker()
+            setupVisualizer(onBeatDetected)
+        } catch (e: Exception) {
+            Timber.e(e, "Play failed for index $index: ${track.title}")
+            isPlaying.value = false
+            
+            consecutiveErrors++
+            if (consecutiveErrors < MAX_CONSECUTIVE_ERRORS) {
+                // Attempt to recover by going to next track after a delay
+                scope.launch {
+                    delay(500)
+                    next(context, onBeatDetected)
+                }
+            } else {
+                Timber.e("Too many consecutive errors in catch block, stopping.")
+                consecutiveErrors = 0
+            }
+        }
     }
 
     fun togglePlayPause(context: Context, onBeatDetected: (ToneType) -> Unit) {
         mediaPlayer?.let { player ->
             if (player.isPlaying) {
-                pause()
+                player.pause()
+                isPlaying.value = false
             } else {
+                // Stop Mic if it's running when resuming music
                 GlobalMicAnalyzer.stopListening()
-                IRUtils.stopManualTransmission()
                 player.start()
                 isPlaying.value = true
                 startProgressTracker()
             }
         } ?: run {
-            if (playlist.isNotEmpty()) {
-                playTrackAt(context, currentTrackIndex.value.takeIf { it != -1 } ?: 0, onBeatDetected)
-            }
+            if (playlist.isNotEmpty()) playTrackAt(context, currentTrackIndex.value.coerceAtLeast(0), onBeatDetected)
         }
     }
 
     fun pause() {
-        mediaPlayer?.let {
-            if (it.isPlaying) {
-                it.pause()
-                isPlaying.value = false
-            }
-        }
+        mediaPlayer?.let { if (it.isPlaying) { it.pause(); isPlaying.value = false } }
     }
 
     fun next(context: Context, onBeatDetected: (ToneType) -> Unit) {
         if (playlist.isEmpty()) return
-        var nextIndex = currentTrackIndex.value + 1
-        if (nextIndex >= playlist.size) nextIndex = 0
-        playTrackAt(context, nextIndex, onBeatDetected)
+        playTrackAt(context, (currentTrackIndex.value + 1) % playlist.size, onBeatDetected)
     }
 
     fun prev(context: Context, onBeatDetected: (ToneType) -> Unit) {
         if (playlist.isEmpty()) return
-        var prevIndex = currentTrackIndex.value - 1
-        if (prevIndex < 0) prevIndex = playlist.size - 1
-        playTrackAt(context, prevIndex, onBeatDetected)
+        val newIndex = if (currentTrackIndex.value <= 0) playlist.size - 1 else currentTrackIndex.value - 1
+        playTrackAt(context, newIndex, onBeatDetected)
     }
 
     fun stop() {
         progressJob?.cancel()
-        try {
-            visualizer?.enabled = false
-            visualizer?.release()
-        } catch (e: Exception) {
-            Timber.e(e, "Error releasing visualizer")
-        }
+        visualizer?.apply { try { enabled = false; release() } catch (e: Exception) {} }
         visualizer = null
-        
-        mediaPlayer?.let {
-            try {
-                if (it.isPlaying) it.stop()
-                it.release()
-            } catch (e: Exception) {
-                Timber.e(e, "Error stopping/releasing MediaPlayer")
-            }
-        }
+        mediaPlayer?.apply { try { if (isPlaying) stop(); release() } catch (e: Exception) {} }
         mediaPlayer = null
         isPlaying.value = false
-        currentPosition.value = 0
     }
 
     fun removeTrack(context: Context, index: Int) {
         if (index in playlist.indices) {
-            playlist.removeAt(index)
+            val track = playlist.removeAt(index)
+            File(context.cacheDir, "art_${track.uri.hashCode()}.jpg").delete()
             savePlaylist(context)
-            if (currentTrackIndex.value == index) {
-                stop()
-                currentTrackIndex.value = if (playlist.isNotEmpty()) 0 else -1
-            } else if (currentTrackIndex.value > index) {
-                currentTrackIndex.value -= 1
-            }
+            if (currentTrackIndex.value == index) stop()
+            if (playlist.isEmpty()) currentTrackIndex.value = -1
+            else if (currentTrackIndex.value >= playlist.size) currentTrackIndex.value = playlist.size - 1
         }
     }
 
-    // 4. Progress & Visualizer Data
     private fun startProgressTracker() {
         progressJob?.cancel()
         progressJob = scope.launch {
             while (isPlaying.value) {
-                try {
-                    val player = mediaPlayer ?: break
-                    if (player.isPlaying) {
-                        currentPosition.value = player.currentPosition
-                    }
-                } catch (e: Exception) {
-                    Timber.e(e, "Error in progress tracker")
-                    break
-                }
+                mediaPlayer?.let { if (it.isPlaying) currentPosition.value = it.currentPosition }
                 delay(500)
             }
         }
     }
 
     private fun setupVisualizer(onBeatDetected: (ToneType) -> Unit) {
-        mediaPlayer?.let { player ->
-            try {
-                visualizer = Visualizer(player.audioSessionId).apply {
-                    captureSize = Visualizer.getCaptureSizeRange()[1]
-                    setDataCaptureListener(object : Visualizer.OnDataCaptureListener {
-                        override fun onWaveFormDataCapture(v: Visualizer, waveform: ByteArray, rate: Int) {}
-                        override fun onFftDataCapture(v: Visualizer, fft: ByteArray, rate: Int) {
-                            if (fft.isEmpty() || !isPlaying.value) return
-                            var bassMag = 0.0; var midMag = 0.0; var highMag = 0.0
-                            for (i in 2 until fft.size step 2) {
-                                if (i + 1 < fft.size) {
-                                    val mag = hypot(fft[i].toDouble(), fft[i + 1].toDouble())
-                                    when (i) {
-                                        in 2..6 -> bassMag += mag
-                                        in 12..24 -> midMag += mag
-                                        in 36..56 -> highMag += mag
-                                    }
-                                }
-                            }
-                            val now = System.currentTimeMillis()
-                            if (now - lastBeatTime > 250) {
-                                if (bassMag > 120.0) { lastBeatTime = now; onBeatDetected(ToneType.BASS) }
-                                else if (midMag > 90.0) { lastBeatTime = now; onBeatDetected(ToneType.MID) }
-                                else if (highMag > 60.0) { lastBeatTime = now; onBeatDetected(ToneType.HIGH) }
-                            }
+        val sessionId = mediaPlayer?.audioSessionId ?: return
+        try {
+            visualizer = Visualizer(sessionId).apply {
+                captureSize = Visualizer.getCaptureSizeRange()[1]
+                setDataCaptureListener(object : Visualizer.OnDataCaptureListener {
+                    override fun onWaveFormDataCapture(v: Visualizer, w: ByteArray, r: Int) {}
+                    override fun onFftDataCapture(v: Visualizer, fft: ByteArray, r: Int) {
+                        if (fft.isEmpty() || !isPlaying.value) return
+                        var b = 0.0; var m = 0.0; var h = 0.0
+                        for (i in 2 until fft.size step 2) {
+                            val mag = hypot(fft[i].toDouble(), fft[i + 1].toDouble())
+                            when (i) { in 2..6 -> b += mag; in 12..24 -> m += mag; in 36..56 -> h += mag }
                         }
-                    }, Visualizer.getMaxCaptureRate() / 2, false, true)
-                    enabled = true
-                }
-            } catch (e: Exception) {
-                Timber.e(e, "Failed to initialize visualizer")
-                visualizer = null
+                        val now = System.currentTimeMillis()
+                        if (now - lastBeatTime > 250) {
+                            if (b > 120.0) { lastBeatTime = now; onBeatDetected(ToneType.BASS) }
+                            else if (m > 90.0) { lastBeatTime = now; onBeatDetected(ToneType.MID) }
+                            else if (h > 60.0) { lastBeatTime = now; onBeatDetected(ToneType.HIGH) }
+                        }
+                    }
+                }, Visualizer.getMaxCaptureRate() / 2, false, true)
+                enabled = true
             }
-        }
+        } catch (e: Exception) { visualizer = null }
     }
 
     fun seekTo(position: Int) {
-        mediaPlayer?.let {
-            it.seekTo(position)
-            currentPosition.value = position
-        }
+        mediaPlayer?.seekTo(position)
+        currentPosition.value = position
     }
 }
