@@ -4,6 +4,7 @@ import android.app.Application
 import android.util.Log
 import com.google.firebase.crashlytics.FirebaseCrashlytics
 import com.kglabs.wristdj.BuildConfig
+import com.kglabs.wristdj.utils.GlobalAudioPlayer
 import timber.log.Timber
 
 class MainApplication : Application() {
@@ -15,6 +16,10 @@ class MainApplication : Application() {
     override fun onCreate() {
         super.onCreate()
         myInstance = this
+        
+        // Initialize GlobalAudioPlayer
+        GlobalAudioPlayer.init(this)
+
         if (BuildConfig.DEBUG) {
             Timber.plant(Timber.DebugTree())
         } else {

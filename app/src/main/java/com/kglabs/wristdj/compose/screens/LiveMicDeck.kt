@@ -39,7 +39,7 @@ import com.kglabs.wristdj.utils.ToneType
 @Composable
 fun LiveMicDeck() {
     val context = LocalContext.current
-    var isListening by GlobalMicAnalyzer.isListening
+    val isListening by GlobalMicAnalyzer.isListening
     var sensitivity by remember { mutableStateOf(0.7f) }
     var currentThreshold by remember { mutableStateOf(2500) }
 
@@ -63,7 +63,6 @@ fun LiveMicDeck() {
     val permissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
         hasPermission = isGranted
         if (!isGranted) {
-            isListening = false
             GlobalMicAnalyzer.stopListening()
         }
     }
@@ -72,23 +71,7 @@ fun LiveMicDeck() {
         if (!hasPermission) permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
     }
 
-    // Ensure mic analyzer is correctly synced with the global state when returning to screen
-    LaunchedEffect(Unit) {
-        if (isListening) {
-             GlobalMicAnalyzer.startListening(
-                context = context,
-                getSensitivity = { sensitivity }
-            ) { toneType ->
-                val selectedColorName = when (toneType) {
-                    ToneType.BASS -> BandColorConstants.bassColors.random()
-                    ToneType.MID -> BandColorConstants.midColors.random()
-                    ToneType.HIGH -> BandColorConstants.highColors.random()
-                }
-                colorToSignalMap[selectedColorName]?.let { IRUtils.transmitSignal(it) }
-            }
-        }
-    }
-
+    // Use a single LaunchedEffect to manage the mic based on isListening state
     LaunchedEffect(isListening) {
         if (isListening) {
             GlobalMicAnalyzer.startListening(
