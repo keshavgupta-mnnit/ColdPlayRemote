@@ -12,14 +12,48 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.DeleteOutline
+import androidx.compose.material.icons.filled.FolderSpecial
+import androidx.compose.material.icons.filled.LibraryMusic
+import androidx.compose.material.icons.filled.Pause
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.QueueMusic
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.SkipNext
+import androidx.compose.material.icons.filled.SkipPrevious
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderDefaults
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -33,12 +67,15 @@ import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
+import com.kglabs.wristdj.R
+import com.kglabs.wristdj.compose.components.HeaderWithIcon
 import com.kglabs.wristdj.compose.components.GlowingMediaButton
 import com.kglabs.wristdj.compose.components.StudioBackground
 import com.kglabs.wristdj.compose.components.VinylRecord
 import com.kglabs.wristdj.models.AudioTrack
 import com.kglabs.wristdj.services.MusicPlayerService
 import com.kglabs.wristdj.utils.BandColorConstants
+import com.kglabs.wristdj.utils.BasicUtils
 import com.kglabs.wristdj.utils.GlobalAudioPlayer
 import com.kglabs.wristdj.utils.IRUtils
 import com.kglabs.wristdj.utils.ToneType
@@ -56,7 +93,8 @@ fun PlayerDeck() {
 
     val currentTrack = if (currentIndex in playlist.indices) playlist[currentIndex] else null
     val trackDuration = currentTrack?.duration ?: 0
-    val progressPercent = if (trackDuration > 0) currentPosition.toFloat() / trackDuration.toFloat() else 0f
+    val progressPercent =
+        if (trackDuration > 0) currentPosition.toFloat() / trackDuration.toFloat() else 0f
 
     // Slider Dragging State
     var isDragging by remember { mutableStateOf(false) }
@@ -78,6 +116,7 @@ fun PlayerDeck() {
                 val binder = service as MusicPlayerService.LocalBinder
                 musicService = binder.getService()
             }
+
             override fun onServiceDisconnected(name: ComponentName?) {
                 musicService = null
             }
@@ -104,10 +143,12 @@ fun PlayerDeck() {
                         )
                     }
                 }
+
                 Lifecycle.Event.ON_RESUME -> {
                     // App is back in foreground: hide notification
                     musicService?.demoteToBackground()
                 }
+
                 else -> {}
             }
         }
@@ -117,16 +158,22 @@ fun PlayerDeck() {
         }
     }
 
-    val filePickerLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { uris ->
-        if (uris.isNotEmpty()) GlobalAudioPlayer.addTracks(context, uris)
-    }
-    val folderPickerLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
-        uri?.let { GlobalAudioPlayer.addTracksFromFolder(context, it) }
-    }
+    val filePickerLauncher =
+        rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { uris ->
+            if (uris.isNotEmpty()) GlobalAudioPlayer.addTracks(context, uris)
+        }
+    val folderPickerLauncher =
+        rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
+            uri?.let { GlobalAudioPlayer.addTracksFromFolder(context, it) }
+        }
 
     // --- UPGRADED: Ask for Mic AND Notifications at the same time ---
     var hasPermission by remember {
-        mutableStateOf(ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED)
+        mutableStateOf(
+            ContextCompat.checkSelfPermission(
+                context, Manifest.permission.RECORD_AUDIO
+            ) == PackageManager.PERMISSION_GRANTED
+        )
     }
 
     val permissionLauncher = rememberLauncherForActivityResult(
@@ -153,14 +200,17 @@ fun PlayerDeck() {
     }
 
     StudioBackground(
-        showTopGlow = isPlaying,
-        glowColor = currentTrack?.glowColor ?: Color(0xFFFFA500)
+        showTopGlow = isPlaying, glowColor = currentTrack?.glowColor ?: Color(0xFFFFA500)
     ) {
         Column(
-            modifier = Modifier.fillMaxSize().padding(horizontal = 24.dp),
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text("Wrist DJ - Player", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 16.dp, bottom = 32.dp))
+            HeaderWithIcon(
+                title = "Music Player", iconRes = R.drawable.ic_music_neon
+            )
 
             VinylRecord(
                 albumArt = currentTrack?.albumArt,
@@ -171,7 +221,15 @@ fun PlayerDeck() {
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            Text(currentTrack?.title ?: "No Track Selected", color = Color.White, fontSize = 22.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center)
+            Text(
+                text = BasicUtils.formatTitle(currentTrack?.title ?: "No Track Selected"),
+                color = Color.White,
+                fontSize = 22.sp,
+                fontWeight = FontWeight.Bold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                textAlign = TextAlign.Center
+            )
 
             Spacer(modifier = Modifier.height(24.dp))
 
@@ -180,14 +238,26 @@ fun PlayerDeck() {
                 horizontalArrangement = Arrangement.SpaceEvenly,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                ActionIconButton(Icons.Default.LibraryMusic, "Files") { filePickerLauncher.launch(arrayOf("audio/*")) }
-                ActionIconButton(Icons.Default.FolderSpecial, "Folder") { folderPickerLauncher.launch(null) }
-                ActionIconButton(Icons.Default.QueueMusic, "Playlist (${playlist.size})") { showPlaylist = true }
+                ActionIconButton(Icons.Default.LibraryMusic, "Files") {
+                    filePickerLauncher.launch(
+                        arrayOf("audio/*")
+                    )
+                }
+                ActionIconButton(
+                    Icons.Default.FolderSpecial, "Folder"
+                ) { folderPickerLauncher.launch(null) }
+                ActionIconButton(
+                    Icons.Default.QueueMusic, "Playlist (${playlist.size})"
+                ) { showPlaylist = true }
             }
 
             Spacer(modifier = Modifier.weight(1f))
 
-            Column(modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 16.dp)
+            ) {
                 Slider(
                     value = if (isDragging) sliderPosition else progressPercent,
                     onValueChange = {
@@ -199,12 +269,20 @@ fun PlayerDeck() {
                         val seekTarget = (sliderPosition * trackDuration).toInt()
                         GlobalAudioPlayer.seekTo(seekTarget)
                     },
-                    colors = SliderDefaults.colors(thumbColor = Color.White, activeTrackColor = Color.White, inactiveTrackColor = Color.DarkGray)
+                    colors = SliderDefaults.colors(
+                        thumbColor = Color(0xFFFF007F),
+                        activeTrackColor = Color(0xFFFFA500),
+                        inactiveTrackColor = Color.DarkGray
+                    )
                 )
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    val displayTime = if (isDragging) (sliderPosition * trackDuration).toInt() else currentPosition
-                    Text(formatTime(displayTime), color = Color.Gray, fontSize = 12.sp)
-                    Text(formatTime(trackDuration), color = Color.Gray, fontSize = 12.sp)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    val displayTime =
+                        if (isDragging) (sliderPosition * trackDuration).toInt() else currentPosition
+                    Text(BasicUtils.formatTime(displayTime), color = Color.Gray, fontSize = 12.sp)
+                    Text(BasicUtils.formatTime(trackDuration), color = Color.Gray, fontSize = 12.sp)
                 }
             }
 
@@ -213,13 +291,29 @@ fun PlayerDeck() {
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                GlowingMediaButton(icon = Icons.Default.SkipPrevious, glowColor = Color(0xFF00FF00), size = 60.dp, iconSize = 34.dp) {
+                GlowingMediaButton(
+                    icon = Icons.Default.SkipPrevious,
+                    glowColor = Color(0xFF00FF00),
+                    size = 60.dp,
+                    iconSize = 34.dp
+                ) {
                     GlobalAudioPlayer.prev(context, onBeat)
                 }
-                GlowingMediaButton(icon = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow, glowColor = Color(0xFF00E5FF), secondaryColor = Color(0xFFFF007F), size = 80.dp, iconSize = 48.dp) {
+                GlowingMediaButton(
+                    icon = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
+                    glowColor = Color(0xFF00E5FF),
+                    secondaryColor = Color(0xFFFF007F),
+                    size = 80.dp,
+                    iconSize = 48.dp
+                ) {
                     GlobalAudioPlayer.togglePlayPause(context, onBeat)
                 }
-                GlowingMediaButton(icon = Icons.Default.SkipNext, glowColor = Color(0xFFFFA500), size = 60.dp, iconSize = 34.dp) {
+                GlowingMediaButton(
+                    icon = Icons.Default.SkipNext,
+                    glowColor = Color(0xFFFFA500),
+                    size = 60.dp,
+                    iconSize = 34.dp
+                ) {
                     GlobalAudioPlayer.next(context, onBeat)
                 }
             }
@@ -237,13 +331,14 @@ fun PlayerDeck() {
             onTrackSelected = { GlobalAudioPlayer.playTrackAt(context, it, onBeat) },
             onRemoveTrack = { GlobalAudioPlayer.removeTrack(context, it) },
             onAddFiles = { filePickerLauncher.launch(arrayOf("audio/*")) },
-            onAddFolder = { folderPickerLauncher.launch(null) }
-        )
+            onAddFolder = { folderPickerLauncher.launch(null) })
     }
 }
 
 @Composable
-private fun ActionIconButton(icon: androidx.compose.ui.graphics.vector.ImageVector, label: String, onClick: () -> Unit) {
+private fun ActionIconButton(
+    icon: androidx.compose.ui.graphics.vector.ImageVector, label: String, onClick: () -> Unit
+) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         IconButton(onClick = onClick, modifier = Modifier.size(56.dp)) {
             Icon(icon, label, tint = Color.White, modifier = Modifier.size(32.dp))
@@ -266,32 +361,88 @@ private fun PlaylistBottomSheet(
     onAddFolder: () -> Unit
 ) {
     ModalBottomSheet(onDismissRequest = onDismiss, containerColor = Color(0xFF111111)) {
-        Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()
+            ) {
                 OutlinedTextField(
-                    value = searchQuery, onValueChange = onSearchQueryChange,
+                    value = searchQuery,
+                    onValueChange = onSearchQueryChange,
                     placeholder = { Text("Search songs...", color = Color.Gray) },
-                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Search", tint = Color.Gray) },
-                    trailingIcon = { if (searchQuery.isNotEmpty()) { IconButton(onClick = { onSearchQueryChange("") }) { Icon(Icons.Default.Close, "Clear", tint = Color.Gray) } } },
-                    colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = Color(0xFF00E5FF), unfocusedBorderColor = Color.DarkGray, focusedTextColor = Color.White, unfocusedTextColor = Color.White),
-                    singleLine = true, modifier = Modifier.weight(1f)
+                    leadingIcon = {
+                        Icon(
+                            Icons.Default.Search, contentDescription = "Search", tint = Color.Gray
+                        )
+                    },
+                    trailingIcon = {
+                        if (searchQuery.isNotEmpty()) {
+                            IconButton(onClick = { onSearchQueryChange("") }) {
+                                Icon(
+                                    Icons.Default.Close, "Clear", tint = Color.Gray
+                                )
+                            }
+                        }
+                    },
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = Color(0xFF00E5FF),
+                        unfocusedBorderColor = Color.DarkGray,
+                        focusedTextColor = Color.White,
+                        unfocusedTextColor = Color.White
+                    ),
+                    singleLine = true,
+                    modifier = Modifier.weight(1f)
                 )
                 Spacer(modifier = Modifier.width(12.dp))
                 Row(
-                    modifier = Modifier.background(Color(0xFF222222), RoundedCornerShape(12.dp)).padding(horizontal = 4.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                    modifier = Modifier
+                        .background(Color(0xFF222222), RoundedCornerShape(12.dp))
+                        .padding(horizontal = 4.dp), verticalAlignment = Alignment.CenterVertically
                 ) {
-                    IconButton(onClick = onAddFiles) { Icon(Icons.Default.LibraryMusic, "Add Files", tint = Color.White) }
-                    Box(modifier = Modifier.width(1.dp).height(24.dp).background(Color.DarkGray))
-                    IconButton(onClick = onAddFolder) { Icon(Icons.Default.FolderSpecial, "Add Folder", tint = Color.White) }
+                    IconButton(onClick = onAddFiles) {
+                        Icon(
+                            Icons.Default.LibraryMusic, "Add Files", tint = Color.White
+                        )
+                    }
+                    Box(
+                        modifier = Modifier
+                            .width(1.dp)
+                            .height(24.dp)
+                            .background(Color.DarkGray)
+                    )
+                    IconButton(onClick = onAddFolder) {
+                        Icon(
+                            Icons.Default.FolderSpecial, "Add Folder", tint = Color.White
+                        )
+                    }
                 }
             }
             Spacer(modifier = Modifier.height(16.dp))
-            val filteredList = playlist.withIndex().filter { it.value.title.contains(searchQuery, ignoreCase = true) }
+            val filteredList = playlist.withIndex()
+                .filter { it.value.title.contains(searchQuery, ignoreCase = true) }
             if (playlist.isEmpty()) {
-                Box(modifier = Modifier.fillMaxWidth().height(200.dp), contentAlignment = Alignment.Center) { Text("No songs in playlist.\nTap the + icon to add some!", color = Color.Gray, textAlign = TextAlign.Center) }
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(200.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        "No songs in playlist.\nTap the + icon to add some!",
+                        color = Color.Gray,
+                        textAlign = TextAlign.Center
+                    )
+                }
             } else if (filteredList.isEmpty()) {
-                Box(modifier = Modifier.fillMaxWidth().height(200.dp), contentAlignment = Alignment.Center) { Text("No matching songs found.", color = Color.Gray) }
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(200.dp),
+                    contentAlignment = Alignment.Center
+                ) { Text("No matching songs found.", color = Color.Gray) }
             } else {
                 LazyColumn(modifier = Modifier.fillMaxWidth()) {
                     items(filteredList) { indexedValue ->
@@ -299,22 +450,41 @@ private fun PlaylistBottomSheet(
                         val track = indexedValue.value
                         val isCurrent = originalIndex == currentIndex
                         Row(
-                            modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp).background(if (isCurrent) Color(0xFF222222) else Color.Transparent, RoundedCornerShape(8.dp)).clickable { onTrackSelected(originalIndex) }.padding(12.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 4.dp)
+                                .background(
+                                    if (isCurrent)
+                                        Color(0xFF00E5FF).copy(alpha = 0.15f)
+                                    else
+                                        Color.Transparent,
+                                    RoundedCornerShape(8.dp)
+                                )
+                                .clickable { onTrackSelected(originalIndex) }
+                                .padding(12.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Column(modifier = Modifier.weight(1f)) {
-                                Text(track.title, color = if (isCurrent) Color(0xFF00FF00) else Color.White, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                Text(
+                                    text = BasicUtils.formatTitle(track.title),
+                                    color = if (isCurrent) Color(0xFF00E5FF) else Color.White,
+                                    fontWeight = FontWeight.Bold,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
                             }
-                            IconButton(onClick = { onRemoveTrack(originalIndex) }) { Icon(Icons.Default.DeleteOutline, "Remove", tint = Color(0xFFFF5555)) }
+
+                            IconButton(onClick = { onRemoveTrack(originalIndex) }) {
+                                Icon(
+                                    Icons.Default.DeleteOutline,
+                                    contentDescription = "Remove",
+                                    tint = Color(0xFFFF5555)
+                                )
+                            }
                         }
                     }
                 }
             }
         }
     }
-}
-
-private fun formatTime(ms: Int): String {
-    val totalSeconds = ms / 1000
-    return String.format("%d:%02d", totalSeconds / 60, totalSeconds % 60)
 }

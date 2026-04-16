@@ -20,7 +20,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -29,6 +28,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
+import com.kglabs.wristdj.R
+import com.kglabs.wristdj.compose.components.HeaderWithIcon
 import com.kglabs.wristdj.compose.components.LiveMicVisualizer
 import com.kglabs.wristdj.compose.components.StudioBackground
 import com.kglabs.wristdj.utils.BandColorConstants
@@ -100,12 +101,9 @@ fun LiveMicDeck() {
                 .padding(horizontal = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text(
-                text = "Wrist DJ - Live Mic",
-                color = Color.White,
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(top = 16.dp, bottom = 32.dp)
+            HeaderWithIcon(
+                title = "Live Mic",
+                iconRes = R.drawable.ic_mic_neon
             )
 
             LiveMicVisualizer(isListening = isListening, illuminationAlpha = illuminationAlpha)
@@ -167,8 +165,8 @@ fun LiveMicDeck() {
                     currentThreshold = (3000 * (1.1f - it)).toInt()
                 },
                 colors = SliderDefaults.colors(
-                    thumbColor = Color.White,
-                    activeTrackColor = Color.White,
+                    thumbColor = Color(0xFFFF007F),
+                    activeTrackColor = Color(0xFFFFA500),
                     inactiveTrackColor = Color.DarkGray
                 ),
                 modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
