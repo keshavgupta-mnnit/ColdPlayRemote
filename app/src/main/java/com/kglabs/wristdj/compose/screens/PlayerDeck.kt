@@ -76,9 +76,11 @@ import com.kglabs.wristdj.models.AudioTrack
 import com.kglabs.wristdj.services.MusicPlayerService
 import com.kglabs.wristdj.utils.BandColorConstants
 import com.kglabs.wristdj.utils.BasicUtils
+import com.kglabs.wristdj.utils.EnergyLevel
 import com.kglabs.wristdj.utils.GlobalAudioPlayer
 import com.kglabs.wristdj.utils.IRUtils
 import com.kglabs.wristdj.utils.ToneType
+import com.kglabs.wristdj.utils.UltimateLightingEngine
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -190,13 +192,11 @@ fun PlayerDeck() {
         permissionLauncher.launch(permissionsToAsk.toTypedArray())
     }
 
-    val onBeat: (ToneType) -> Unit = { toneType ->
-        val colorName = when (toneType) {
-            ToneType.BASS -> BandColorConstants.bassColors.random()
-            ToneType.MID -> BandColorConstants.midColors.random()
-            ToneType.HIGH -> BandColorConstants.highColors.random()
+    val onBeat: (EnergyLevel, ToneType) -> Unit = { level, tone ->
+        val colorName = UltimateLightingEngine.onAudioEvent(level, tone)
+        colorName?.let {
+            colorToSignalMap[it]?.let { signal -> IRUtils.transmitSignal(signal) }
         }
-        colorToSignalMap[colorName]?.let { IRUtils.transmitSignal(it) }
     }
 
     StudioBackground(

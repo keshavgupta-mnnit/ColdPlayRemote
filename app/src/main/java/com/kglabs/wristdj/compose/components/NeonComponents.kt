@@ -53,7 +53,7 @@ fun HeaderWithIcon(
         Image(
             painter = painterResource(iconRes),
             contentDescription = null,
-            modifier = Modifier.size(48.dp)
+            modifier = Modifier.size(32.dp)
         )
 
         Spacer(modifier = Modifier.width(6.dp))

@@ -36,6 +36,7 @@ import com.kglabs.wristdj.utils.BandColorConstants
 import com.kglabs.wristdj.utils.IRUtils
 import com.kglabs.wristdj.utils.GlobalMicAnalyzer
 import com.kglabs.wristdj.utils.ToneType
+import com.kglabs.wristdj.utils.UltimateLightingEngine
 
 @Composable
 fun LiveMicDeck() {
@@ -75,16 +76,15 @@ fun LiveMicDeck() {
     // Use a single LaunchedEffect to manage the mic based on isListening state
     LaunchedEffect(isListening) {
         if (isListening) {
+            UltimateLightingEngine.reset()
             GlobalMicAnalyzer.startListening(
                 context = context,
                 getSensitivity = { sensitivity }
-            ) { toneType ->
-                val selectedColorName = when (toneType) {
-                    ToneType.BASS -> BandColorConstants.bassColors.random()
-                    ToneType.MID -> BandColorConstants.midColors.random()
-                    ToneType.HIGH -> BandColorConstants.highColors.random()
+            ) { level, tone ->
+                val colorName = UltimateLightingEngine.onAudioEvent(level, tone)
+                colorName?.let {
+                    colorToSignalMap[it]?.let { signal -> IRUtils.transmitSignal(signal) }
                 }
-                colorToSignalMap[selectedColorName]?.let { IRUtils.transmitSignal(it) }
             }
         } else {
             GlobalMicAnalyzer.stopListening()
@@ -138,16 +138,15 @@ fun LiveMicDeck() {
                         GlobalMicAnalyzer.stopListening()
                     } else {
                         IRUtils.stopManualTransmission()
+                        UltimateLightingEngine.reset()
                         GlobalMicAnalyzer.startListening(
                             context = context,
                             getSensitivity = { sensitivity }
-                        ) { toneType ->
-                            val selectedColorName = when (toneType) {
-                                ToneType.BASS -> BandColorConstants.bassColors.random()
-                                ToneType.MID -> BandColorConstants.midColors.random()
-                                ToneType.HIGH -> BandColorConstants.highColors.random()
+                        ) { level, tone ->
+                            val colorName = UltimateLightingEngine.onAudioEvent(level, tone)
+                            colorName?.let {
+                                colorToSignalMap[it]?.let { signal -> IRUtils.transmitSignal(signal) }
                             }
-                            colorToSignalMap[selectedColorName]?.let { IRUtils.transmitSignal(it) }
                         }
                     }
                 }
