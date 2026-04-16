@@ -11,6 +11,19 @@ android {
     namespace = "com.kglabs.wristdj"
     compileSdk = Versions.compileSdk
 
+    // 1. Add Signing Configuration
+    signingConfigs {
+        create("release") {
+            // This looks for the file recreated by GitHub Actions
+            storeFile = file("WristDJ.jks")
+
+            // These read from the GitHub Actions Environment Variables
+            storePassword = System.getenv("KEYSTORE_PASSWORD")
+            keyAlias = System.getenv("KEY_ALIAS")
+            keyPassword = System.getenv("KEY_PASSWORD")
+        }
+    }
+
     defaultConfig {
         applicationId = "com.kglabs.wristdj"
 
@@ -24,6 +37,9 @@ android {
 
     buildTypes {
         release {
+            // 2. Attach the signing config to the release build
+            signingConfig = signingConfigs.getByName("release")
+
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(
@@ -32,10 +48,12 @@ android {
             )
         }
     }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_1_8
         targetCompatibility = JavaVersion.VERSION_1_8
     }
+
     kotlinOptions {
         jvmTarget = "1.8"
     }
