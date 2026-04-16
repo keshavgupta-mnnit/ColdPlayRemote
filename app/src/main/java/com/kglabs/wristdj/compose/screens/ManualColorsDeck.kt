@@ -1,52 +1,64 @@
 package com.kglabs.wristdj.compose.screens
 
-import androidx.compose.animation.core.*
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.kglabs.wristdj.R
+import com.kglabs.wristdj.compose.components.HeaderWithIcon
 import com.kglabs.wristdj.compose.components.ColorHeroVisualizer
 import com.kglabs.wristdj.compose.components.ColorSwatchButton
 import com.kglabs.wristdj.compose.components.StudioBackground
 import com.kglabs.wristdj.utils.BandColorConstants
-import com.kglabs.wristdj.utils.IRUtils
-import com.kglabs.wristdj.utils.GlobalMicAnalyzer
 import com.kglabs.wristdj.utils.GlobalAudioPlayer
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
+import com.kglabs.wristdj.utils.GlobalMicAnalyzer
+import com.kglabs.wristdj.utils.IRUtils
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 
 @Composable
 fun ManualColorsDeck() {
     val colorToSignalMap = remember { BandColorConstants.buttons.toMap() }
 
-    // --- STATE MANAGEMENT ---
-    var activeUiColor by remember { mutableStateOf(Color(0xFF00E5FF)) } // Defaults to Cyan
+    // --- STATE ---
+    var activeUiColor by remember { mutableStateOf(Color(0xFF00E5FF)) }
     var activeSignal by remember { mutableStateOf(colorToSignalMap["Cyan"]) }
 
-    // Toggle for continuous transmission
     var isTransmittingContinuously by IRUtils.isManualTransmitting
 
     val scrollState = rememberScrollState()
 
-    // --- CONTINUOUS FIRING LOOP ---
+    // --- CONTINUOUS TRANSMISSION (FIXED LOOP) ---
     LaunchedEffect(isTransmittingContinuously, activeSignal) {
-        if (isTransmittingContinuously && activeSignal != null) {
-            // Stop other sources
+        while (isActive && isTransmittingContinuously && activeSignal != null) {
+
+            // stop other systems
             GlobalMicAnalyzer.stopListening()
             GlobalAudioPlayer.pause()
 
-            while (true) {
-                IRUtils.transmitSignal(activeSignal!!)
-                delay(300)
-            }
+            IRUtils.transmitSignal(activeSignal!!)
+            delay(300)
         }
     }
 
@@ -63,17 +75,17 @@ fun ManualColorsDeck() {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 24.dp),
+                .padding(horizontal = 20.dp), // tighter padding
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text(
-                text = "Wrist DJ - Colors",
-                color = Color.White,
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(top = 16.dp, bottom = 32.dp)
+
+            // HEADER
+            HeaderWithIcon(
+                title = "Colors",
+                iconRes = R.drawable.ic_colors_neon
             )
 
+            // HERO VISUAL
             ColorHeroVisualizer(
                 targetColor = activeUiColor,
                 isTransmitting = isTransmittingContinuously,
@@ -82,50 +94,49 @@ fun ManualColorsDeck() {
                 }
             )
 
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(28.dp))
 
+            // SCROLL CONTENT
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f)
                     .verticalScroll(scrollState)
             ) {
+
                 ColorCategoryGrid(
                     title = "Bass & Warmth",
                     colorNames = BandColorConstants.bassColors,
                     activeUiColor = activeUiColor,
-                    colorToSignalMap = colorToSignalMap,
-                    onColorSelected = { uiColor, signal ->
-                        activeUiColor = uiColor
-                        activeSignal = signal
-                    }
-                )
+                    colorToSignalMap = colorToSignalMap
+                ) { uiColor, signal ->
+                    activeUiColor = uiColor
+                    activeSignal = signal
+                }
 
-                Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(20.dp))
 
                 ColorCategoryGrid(
                     title = "Mid & Synth",
                     colorNames = BandColorConstants.midColors,
                     activeUiColor = activeUiColor,
-                    colorToSignalMap = colorToSignalMap,
-                    onColorSelected = { uiColor, signal ->
-                        activeUiColor = uiColor
-                        activeSignal = signal
-                    }
-                )
+                    colorToSignalMap = colorToSignalMap
+                ) { uiColor, signal ->
+                    activeUiColor = uiColor
+                    activeSignal = signal
+                }
 
-                Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(20.dp))
 
                 ColorCategoryGrid(
                     title = "High Frequencies",
                     colorNames = BandColorConstants.highColors,
                     activeUiColor = activeUiColor,
-                    colorToSignalMap = colorToSignalMap,
-                    onColorSelected = { uiColor, signal ->
-                        activeUiColor = uiColor
-                        activeSignal = signal
-                    }
-                )
+                    colorToSignalMap = colorToSignalMap
+                ) { uiColor, signal ->
+                    activeUiColor = uiColor
+                    activeSignal = signal
+                }
 
                 Spacer(modifier = Modifier.height(32.dp))
             }

@@ -21,6 +21,8 @@ import com.kglabs.wristdj.utils.BandColorConstants
 import com.kglabs.wristdj.utils.GlobalAudioPlayer
 import com.kglabs.wristdj.utils.IRUtils
 import com.kglabs.wristdj.utils.ToneType
+import com.kglabs.wristdj.utils.EnergyLevel
+import com.kglabs.wristdj.utils.UltimateLightingEngine
 
 class MusicPlayerService : Service() {
 
@@ -28,9 +30,6 @@ class MusicPlayerService : Service() {
     private lateinit var mediaSession: MediaSessionCompat
     private val CHANNEL_ID = "wrist_dj_media_channel"
     private val NOTIFICATION_ID = 1
-
-    // This is where your FFT Analyzer from the previous step will live
-    // val musicAnalyzer = MusicPlayerAnalyzer(this)
 
     inner class LocalBinder : Binder() {
         fun getService(): MusicPlayerService = this@MusicPlayerService
@@ -53,11 +52,13 @@ class MusicPlayerService : Service() {
                 }
 
                 override fun onSkipToNext() {
+                    UltimateLightingEngine.reset() // Reset VJ flow on track change
                     GlobalAudioPlayer.next(this@MusicPlayerService, onBeat)
                     updateNotification()
                 }
 
                 override fun onSkipToPrevious() {
+                    UltimateLightingEngine.reset() // Reset VJ flow on track change
                     GlobalAudioPlayer.prev(this@MusicPlayerService, onBeat)
                     updateNotification()
                 }
@@ -70,21 +71,21 @@ class MusicPlayerService : Service() {
         }
     }
 
-    private val onBeat: (ToneType) -> Unit = { toneType ->
-        val colorToSignalMap = BandColorConstants.buttons.toMap()
-        val colorName = when (toneType) {
-            ToneType.BASS -> BandColorConstants.bassColors.random()
-            ToneType.MID -> BandColorConstants.midColors.random()
-            ToneType.HIGH -> BandColorConstants.highColors.random()
+    // --- UPGRADED: Now passes both Energy and Tone to the Ultimate Engine ---
+    private val onBeat: (EnergyLevel, ToneType) -> Unit = { level, tone ->
+        val colorName = UltimateLightingEngine.onAudioEvent(level, tone)
+
+        colorName?.let {
+            val colorToSignalMap = BandColorConstants.buttons.toMap()
+            colorToSignalMap[it]?.let { signal -> IRUtils.transmitSignal(signal) }
         }
-        colorToSignalMap[colorName]?.let { IRUtils.transmitSignal(it) }
     }
 
     private fun updateNotification() {
         val currentTrack = if (GlobalAudioPlayer.currentTrackIndex.value in GlobalAudioPlayer.playlist.indices) {
             GlobalAudioPlayer.playlist[GlobalAudioPlayer.currentTrackIndex.value]
         } else null
-        
+
         promoteToForeground(
             title = currentTrack?.title ?: "Wrist DJ",
             albumArt = currentTrack?.albumArt
@@ -107,14 +108,13 @@ class MusicPlayerService : Service() {
         val currentTrack = if (GlobalAudioPlayer.currentTrackIndex.value in GlobalAudioPlayer.playlist.indices) {
             GlobalAudioPlayer.playlist[GlobalAudioPlayer.currentTrackIndex.value]
         } else null
-        
+
         val duration = currentTrack?.duration ?: 0
         val position = GlobalAudioPlayer.mediaPlayer?.currentPosition ?: 0
 
         updateMediaSession(title, albumArt, isPlaying, duration, position)
         val notification = buildNotification(title, isPlaying = isPlaying, albumArt = albumArt)
 
-        // Android 10+ requires explicit foreground types for Media
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             startForeground(
                 NOTIFICATION_ID,
@@ -147,7 +147,6 @@ class MusicPlayerService : Service() {
     }
 
     fun demoteToBackground() {
-        // Hide the notification but keep the service alive
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
             stopForeground(STOP_FOREGROUND_REMOVE)
         } else {

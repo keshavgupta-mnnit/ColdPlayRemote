@@ -7,25 +7,31 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
 @Composable
 fun ColorSwatchButton(
     uiColor: Color,
-    isSelected: Boolean = false,
+    isSelected: Boolean,
+    size: Dp = 60.dp,
     onClick: () -> Unit
 ) {
     Box(
         modifier = Modifier
-            .size(56.dp)
+            .size(size)
             .clip(CircleShape)
             .background(uiColor)
             .border(
-                width = if (isSelected) 3.dp else 1.5.dp,
-                color = if (isSelected) Color.White else Color(0x66FFFFFF),
+                width = if (isSelected) 3.dp else 1.dp,
+                color = if (isSelected)
+                    Color.White
+                else
+                    Color.White.copy(alpha = 0.15f),
                 shape = CircleShape
             )
             .clickable { onClick() }

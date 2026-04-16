@@ -33,6 +33,8 @@ fun VinylRecord(
     glowColor: Color = Color(0xFF00E5FF),
     secondaryColor: Color = Color(0xFFFF007F)
 ) {
+
+    // ---------------- ROTATION ----------------
     var currentRotation by remember { mutableFloatStateOf(0f) }
 
     LaunchedEffect(isPlaying) {
@@ -42,47 +44,65 @@ fun VinylRecord(
         }
     }
 
-    val activeGlow = if (isPlaying) glowColor else Color.DarkGray
-    val activeSecondary = if (isPlaying) secondaryColor else Color.DarkGray
-    
+    // ---------------- PULSE EFFECT ----------------
+    var scale by remember { mutableFloatStateOf(1f) }
+
+    LaunchedEffect(progress) {
+        if (isPlaying) {
+            scale = 1.05f
+            delay(80)
+            scale = 1f
+        }
+    }
+
+    // ---------------- GLOW ANIMATION ----------------
     val infiniteTransition = rememberInfiniteTransition(label = "vinylGlow")
+
     val glowIntensity by infiniteTransition.animateFloat(
         initialValue = 0.6f,
-        targetValue = 0.9f,
+        targetValue = 1f,
         animationSpec = infiniteRepeatable(
             animation = tween(1200, easing = FastOutSlowInEasing),
             repeatMode = RepeatMode.Reverse
         ),
-        label = "intensity"
+        label = "glow"
     )
 
+    val activeGlow = if (isPlaying) glowColor else Color.DarkGray
+    val activeSecondary = if (isPlaying) secondaryColor else Color.DarkGray
+
+    // ---------------- MAIN CONTAINER ----------------
     Box(
         contentAlignment = Alignment.Center,
         modifier = Modifier
-            .size(240.dp)
+            .size(250.dp)
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            }
             .clip(CircleShape)
             .background(Color(0xFF050505))
             .drawBehind {
                 if (isPlaying) {
-                    // Backlit glow with dual colors matching the play button
                     drawCircle(
                         brush = Brush.radialGradient(
-                            0.0f to activeGlow.copy(alpha = 0.5f * glowIntensity),
-                            0.6f to activeSecondary.copy(alpha = 0.3f * glowIntensity),
-                            0.9f to activeGlow.copy(alpha = 0.1f * glowIntensity),
-                            1.0f to Color.Transparent,
-                            center = center,
-                            radius = 118.dp.toPx()
+                            0.0f to activeGlow.copy(alpha = 0.6f * glowIntensity),
+                            0.5f to activeSecondary.copy(alpha = 0.4f * glowIntensity),
+                            0.8f to activeGlow.copy(alpha = 0.2f * glowIntensity),
+                            1.0f to Color.Transparent
                         ),
-                        radius = 118.dp.toPx()
+                        radius = size.minDimension / 2 + 20.dp.toPx()
                     )
                 }
             }
     ) {
+
+        // ---------------- PROGRESS ARC ----------------
         androidx.compose.foundation.Canvas(modifier = Modifier.fillMaxSize()) {
-            val strokeWidth = 12.dp.toPx()
+            val strokeWidth = 14.dp.toPx()
             val radius = (size.minDimension - strokeWidth) / 2
-            
+
+            // Base track
             drawArc(
                 color = Color(0xFF222222),
                 startAngle = 0f,
@@ -92,8 +112,16 @@ fun VinylRecord(
                 size = androidx.compose.ui.geometry.Size(radius * 2, radius * 2),
                 style = Stroke(width = strokeWidth)
             )
+
+            // Progress arc with gradient
             drawArc(
-                color = activeGlow,
+                brush = Brush.sweepGradient(
+                    listOf(
+                        activeGlow,
+                        activeSecondary,
+                        activeGlow
+                    )
+                ),
                 startAngle = -90f,
                 sweepAngle = 360f * progress,
                 useCenter = false,
@@ -103,34 +131,73 @@ fun VinylRecord(
             )
         }
 
+        // ---------------- INNER DISC ----------------
         Box(
             modifier = Modifier
-                .size(200.dp)
+                .size(210.dp)
                 .clip(CircleShape)
                 .background(Color(0xFF0A0A0A))
                 .drawBehind {
-                    drawCircle(color = Color(0xFF1A1A1A), radius = size.minDimension / 2.2f, style = Stroke(width = 2f))
-                    drawCircle(color = Color(0xFF1A1A1A), radius = size.minDimension / 2.6f, style = Stroke(width = 2f))
-                    drawCircle(color = Color(0xFF1A1A1A), radius = size.minDimension / 3.2f, style = Stroke(width = 2f))
+                    // Vinyl grooves
+                    repeat(5) { i ->
+                        drawCircle(
+                            color = Color(0xFF1A1A1A),
+                            radius = size.minDimension / (2.2f + i * 0.5f),
+                            style = Stroke(width = 2f)
+                        )
+                    }
                 }
-                .graphicsLayer { rotationZ = currentRotation },
+                .graphicsLayer {
+                    rotationZ = currentRotation
+                },
             contentAlignment = Alignment.Center
         ) {
+
             if (albumArt != null) {
                 androidx.compose.foundation.Image(
                     bitmap = albumArt.asImageBitmap(),
                     contentDescription = "Album Art",
                     contentScale = ContentScale.Crop,
-                    modifier = Modifier.size(90.dp).clip(CircleShape).border(2.dp, Color(0xFF111111), CircleShape)
+                    modifier = Modifier
+                        .size(100.dp)
+                        .clip(CircleShape)
+                        .border(2.dp, Color(0xFF111111), CircleShape)
                 )
             } else {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(text = if (isPlaying) "PLAYING" else "WRIST DJ", color = activeGlow, fontSize = 12.sp, fontWeight = FontWeight.Bold, letterSpacing = 2.sp)
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(activeSecondary))
-                        Box(modifier = Modifier.size(16.dp).clip(CircleShape).background(activeGlow))
-                        Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(activeSecondary))
+
+                    Text(
+                        text = if (isPlaying) "PLAYING" else "WRIST DJ",
+                        color = activeGlow,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 2.sp
+                    )
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(8.dp)
+                                .clip(CircleShape)
+                                .background(activeSecondary)
+                        )
+                        Box(
+                            modifier = Modifier
+                                .size(18.dp)
+                                .clip(CircleShape)
+                                .background(activeGlow)
+                        )
+                        Box(
+                            modifier = Modifier
+                                .size(8.dp)
+                                .clip(CircleShape)
+                                .background(activeSecondary)
+                        )
                     }
                 }
             }
