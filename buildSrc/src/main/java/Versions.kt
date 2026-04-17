@@ -7,10 +7,10 @@ object Versions {
     const val junitExt = "1.1.5"
     const val espressoCore = "3.5.1"
 
-    const val compileSdk = 34
+    const val compileSdk = 35
     const val minSdk = 24
-    const val targetSdk = 34
-    const val versionCode = 1
+    const val targetSdk = 35
+    const val versionCode = 2
     const val versionName = "1.0"
 
     const val composeVersion = "1.5.4"

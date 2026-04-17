@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
@@ -24,13 +26,31 @@ android {
         }
     }
 
+    val verCode = try {
+        val versionPropsFile = rootProject.file("version.properties")
+        val versionProps = Properties()
+        versionProps.load(versionPropsFile.inputStream())
+        versionProps.getProperty("VERSION_CODE").toInt()
+    } catch (e: Exception) {
+        Versions.versionCode
+    }
+
+    val verName = try {
+        val versionPropsFile = rootProject.file("version.properties")
+        val versionProps = Properties()
+        versionProps.load(versionPropsFile.inputStream())
+        versionProps.getProperty("VERSION_NAME")
+    } catch (e: Exception) {
+        Versions.versionName
+    }
+
     defaultConfig {
         applicationId = "com.kglabs.wristdj"
 
         minSdk = Versions.minSdk
         targetSdk = Versions.targetSdk
-        versionCode = Versions.versionCode
-        versionName = Versions.versionName
+        versionCode = verCode
+        versionName = verName
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
